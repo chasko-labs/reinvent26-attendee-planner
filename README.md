@@ -115,6 +115,16 @@ curated session lists live in `data/reinvent2026/*.json`. each file groups sessi
 python -m pytest -q
 ```
 
+## contributing gate
+
+enable the pre-push hook once per clone:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+pre-push runs secret-shape scan, compile, pytest, and the offline demo. all must pass before pushing.
+
 ## license
 
 MIT
