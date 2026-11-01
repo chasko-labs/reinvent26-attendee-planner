@@ -11,7 +11,7 @@ Inputs
   .cache/reinvent2026/catalog.json      full catalog snapshot (ListSessions with abstracts)
   .cache/reinvent2026/seats-sweep.json  seatAvailability per session code (rebalance only; from seats.py)
   data/reinvent2026/map-config.json     venue gaps, format weights, topic weights, exclusion rules
-  ssm token store                       via bin/awsevents-mcp-refresh (see ssm_token)
+  stored token via reinvent26.auth      python -m reinvent26 login, or set EVENTS_ACCESS_TOKEN
 
 Side effects
   POST /reservations and DELETE /reservations/{id} against the live Events API (unless --dry-run)
@@ -62,7 +62,7 @@ def repo_root() -> str:
     return os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
-def ssm_token() -> str | None:
+def access_token() -> str | None:
     """Return a valid Events API access token from the auth module, or None when sign-in is needed."""
     from reinvent26 import auth
     return auth.stored_access_token()
@@ -248,9 +248,9 @@ def run(dry_run: bool, workers: int, max_checks: int) -> int:
     if not os.path.exists(catalog_path):
         print(f"fail: no catalog at {catalog_path}; pull it first", file=sys.stderr)
         return 2
-    token = ssm_token()
+    token = access_token()
     if not token:
-        print("fail: no valid token; run bin/awsevents-mcp-login (ssh tunnel from the browser machine)", file=sys.stderr)
+        print("fail: no valid token; run python -m reinvent26 login (or set EVENTS_ACCESS_TOKEN)", file=sys.stderr)
         return 2
 
     read_started = time.time()
@@ -317,9 +317,9 @@ def rebalance(dry_run: bool, workers: int) -> int:
     and rebooks the cancelled seats when the booking fails.
     """
     config = mapper._load_config()
-    token = ssm_token()
+    token = access_token()
     if not token:
-        print("fail: no valid token; run bin/awsevents-mcp-login", file=sys.stderr)
+        print("fail: no valid token; run python -m reinvent26 login (or set EVENTS_ACCESS_TOKEN)", file=sys.stderr)
         return 2
     cache_dir = os.path.join(repo_root(), ".cache", EVENT_ID)
     with open(os.path.join(cache_dir, "catalog.json"), encoding="utf-8") as catalog_file:
