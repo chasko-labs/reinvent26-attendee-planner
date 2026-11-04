@@ -44,6 +44,24 @@ refresh lasts 30 days, so re-sign-in monthly or the run exits 2). the
 local model endpoint is optional; without it the report falls back to
 topic tags.
 
+what login prints (captured from the cli on rocm-aibox; values redacted,
+each run mints fresh ones):
+
+```
+# opening browser for Builder ID sign-in (or open this url):
+# https://oauth.awsevents.com/oauth2/authorize?response_type=code
+#   &client_id=7vmom55m1qstvq8i71ph127bfq
+#   &redirect_uri=http://localhost:8484/callback
+#   &scope=openid+email+events/access&identity_provider=AWSBuilderID
+#   &code_challenge=<pkce-s256>&code_challenge_method=S256&state=<csrf>
+```
+
+sign in with builder id in the browser. the callback lands on
+`127.0.0.1:8484` on the machine that ran login, so from a machine
+without a browser forward the port first
+(`ssh -L 8484:localhost:8484 <host>`). tokens land in
+`~/.config/reinvent26/tokens.json` (refresh: 30 days).
+
 ```
 # ~/.config/systemd/user/reinvent26-new-sessions.service
 [Unit]
