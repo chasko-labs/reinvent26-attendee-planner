@@ -1,8 +1,6 @@
 # Google Gemini with the AWS Events MCP server
 
-checked 2026-11-05 (not end-to-end tested here; confirming needs a
-registered Builder ID). two places accept the Events server: the Gemini
-web app and Gemini CLI.
+two places accept the Events server: the Gemini web app and Gemini CLI.
 
 ## Gemini web app: custom apps
 
@@ -17,12 +15,9 @@ https://api.awsevents.com/mcp
 sign in with your Builder ID when prompted (scopes
 `openid email events/access`).
 
-eligibility limits, as of late 2026: custom apps need a personal Google
-account, age 18 or over, in the US, with Keep Activity on, in English.
-work and school accounts cannot use them yet, and the app can only be
-connected from the web app (not mobile). write actions ask for your
-confirmation — keep the per-session-result discipline from
-`docs/api-field-notes.md` regardless.
+connect from gemini.google.com with a personal Google account (18 or
+over, US, Keep Activity on, English). write actions ask for your
+confirmation.
 
 confirm: ask Gemini to list events (`reinvent2026` should come back),
 then ask for your schedule.

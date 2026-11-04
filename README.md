@@ -96,7 +96,7 @@ full call order and live state: [docs/mcp-approach.md](docs/mcp-approach.md).
 field notes and enums: [docs/api-field-notes.md](docs/api-field-notes.md).
 
 use the server from another assistant: [kiro-cli](docs/integrations/kiro-cli.md),
-[Muse web app](docs/integrations/claude-app.md),
+[Meta Muse](docs/integrations/meta-muse.md),
 [Microsoft Copilot](docs/integrations/copilot.md),
 [Google Gemini](docs/integrations/gemini.md).
 
@@ -168,7 +168,7 @@ pre-push runs secret-shape scan, compile, pytest, and the offline demo. all must
 - [docs/hallway-windows.md](docs/hallway-windows.md) — breakfast, lunch, dinner, and morning/midday/evening meetup slots
 - [docs/daily-new-sessions.md](docs/daily-new-sessions.md) — watcher runbook: new-session diffs, local-model eval, cron setup
 - [docs/integrations/kiro-cli.md](docs/integrations/kiro-cli.md) — kiro-cli install, MCP config, watcher handoff
-- [docs/integrations/claude-app.md](docs/integrations/claude-app.md) — Muse web app custom connector
+- [docs/integrations/meta-muse.md](docs/integrations/meta-muse.md) — Meta Muse in-chat custom connector
 - [docs/integrations/copilot.md](docs/integrations/copilot.md) — Copilot routes that can reach the server
 - [docs/integrations/gemini.md](docs/integrations/gemini.md) — Gemini web app and Gemini CLI
 - [docs/mcp-approach.md](docs/mcp-approach.md) — mcp vs cli sign-in patterns and live schedule state
