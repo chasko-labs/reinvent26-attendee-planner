@@ -4,26 +4,47 @@ everything that touches your schedule — and every MCP tool call —
 runs as you, through Builder ID OAuth with PKCE. one sign-in covers
 the cli, the MCP server, and the watcher cron.
 
-## step zero: can this machine run the cli
+## step zero: identify your environment
 
-the cli is stdlib-only: no pip install, no virtualenv. it needs
-python 3.10 or newer:
+you run every check below before any other command. each answer
+decides what you do next:
 
 ```
+hostname; uname -s
+# macmini + Darwin = your Mac. rocm-aibox + Linux = the home box.
+# tokens land on the machine you sign in on, so this answer picks
+# which sign-in feeds the nightly watcher (the box) and which one
+# stays local (the Mac).
+
 python3 --version
-# want: Python 3.10.x or newer
-```
+# want 3.10 or newer. macs ship no `python` command at all, so you
+# must type `python3`, never `python`. if Python 3 is missing
+# entirely: `brew install python` (or python.org), then re-check.
 
-macs ship no python3: `brew install python` (or python.org), then
-re-run the check. then confirm the cli itself loads and report your
-sign-in state in one go:
+git remote -v
+# run inside the repo. want chasko-labs/reinvent26-attendee-planner.
+# any other URL means a stale clone. stop and reclone before you
+# trust any output from it.
 
-```
-cd cli
+git status --short --branch
+# want main, clean. a different branch or modified files means you
+# are not looking at the code you think you are.
+
 python3 -m reinvent26 status reinvent2026
+# run from the cli/ directory. it reports sign-in state and never
+# prints secrets. this is always the first planner command.
 ```
 
-do this before anything else, on any machine. it never prints secrets.
+the cli is stdlib-only: no pip install, no virtualenv. nothing
+else is required to run it.
+
+## the bare-python mistake (recorded, not repeated)
+
+earlier versions of these docs said `python -m`. that fails on both
+machines: macOS ships no `python`, and neither does the box. every
+command now reads `python3 -m`. the pre-push gate rejects bare
+`python -m` in cli, docs, demo, mock, and the readme, so the mistake
+cannot return through a normal push.
 
 ## how to tell if you are signed in
 
