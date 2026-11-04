@@ -14,7 +14,7 @@ pip install -e .
 python -m reinvent26 login
 ```
 
-opens a browser for Builder ID sign-in (PKCE s256, loopback callback). tokens are stored in the OS keychain or `~/.config/reinvent26/tokens.json`.
+opens a browser for Builder ID sign-in (PKCE s256, loopback callback). tokens are stored in the OS keychain or `~/.config/reinvent26/tokens.json`. first time here, start with [docs/sign-in.md](docs/sign-in.md): python check, how to tell if you are signed in, and the Mac recipe. no sign-in handy: `python -m reinvent26 events` and `python demo/demo_public.py` both work without one.
 
 ## quick start
 
