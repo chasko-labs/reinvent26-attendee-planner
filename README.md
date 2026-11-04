@@ -1,45 +1,69 @@
 # reinvent26-attendee-planner
 
-python cli for re:invent 2026 session discovery, planning, and seat booking via the public Events API.
+A Python command-line interface (CLI) for re:Invent 2026 session discovery, planning, and seat booking. It talks to the public Events API (application programming interface). The project uses only the Python standard library, so there is nothing to install.
 
-## install
+## prerequisites
 
-```bash
-pip install -e .
-```
-
-## sign in
+You must have Python 3.10 or newer. You check with:
 
 ```bash
-python -m reinvent26 login
+python3 --version
 ```
 
-opens a browser for Builder ID sign-in (PKCE s256, loopback callback). tokens are stored in the OS keychain or `~/.config/reinvent26/tokens.json`. first time here, start with [docs/sign-in.md](docs/sign-in.md): python check, how to tell if you are signed in, and the Mac recipe. no sign-in handy: `python -m reinvent26 events` and `python demo/demo_public.py` both work without one.
+macOS ships no `python` command. You must type `python3`, not `python`. If your Mac has no Python 3 at all, install it with `brew install python` and re-run the check.
+
+You must clone the live repo. A stale repo with a similar name exists, and it will never catch up:
+
+```bash
+git clone git@github.com:chasko-labs/reinvent26-attendee-planner.git reinvent26-planner
+cd reinvent26-planner/cli
+```
 
 ## quick start
 
+You run every command from the `cli/` directory. You start each session by checking your sign-in state:
+
 ```bash
-# list events
-python -m reinvent26 events
-
-# pull the full catalog, cached
-python -m reinvent26 sessions reinvent2026
-
-# rank by topic keywords
-python -m reinvent26 shortlist reinvent2026 --topics agents,mcp --level 3
-
-# show schedule with clashes
-python -m reinvent26 schedule reinvent2026
-
-# list free windows
-python -m reinvent26 slots reinvent2026 --window 2026-12-01T13:00:00,2026-12-01T16:00:00
-
-# book open seats into free windows
-python -m reinvent26 fill --dry-run   # preview
-python -m reinvent26 fill             # book
+# report sign-in state, api reachability, schedule readability
+python3 -m reinvent26 status reinvent2026
 ```
 
+You sign in when `status` says you are signed out:
+
+```bash
+python3 -m reinvent26 login
+```
+
+The command prints a URL. You open it in your browser and sign in with your Builder ID (AWS identity for builders). The full recipe lives in [docs/sign-in.md](docs/sign-in.md). That doc covers the Python check and the Mac recipe. It shows how to tell if you are signed in. It explains what each error means. Read it first if `status` confuses you.
+
+You then walk the happy path in order:
+
+```bash
+# list events, no sign-in needed
+python3 -m reinvent26 events
+
+# pull the full catalog, cached
+python3 -m reinvent26 sessions reinvent2026
+
+# rank by topic keywords
+python3 -m reinvent26 shortlist reinvent2026 --topics agents,mcp --level 3
+
+# show your schedule plus double bookings
+python3 -m reinvent26 schedule reinvent2026
+
+# list sessions fitting a free window with no clash
+python3 -m reinvent26 slots reinvent2026 --window 2026-12-01T13:00:00,2026-12-01T16:00:00
+
+# preview what fits, then book
+python3 -m reinvent26 fill --dry-run
+python3 -m reinvent26 fill
+```
+
+You can preview the whole loop without signing in. The command `python3 -m reinvent26 events` needs no token. The script `python3 demo/demo_public.py` replays a recorded session end to end.
+
 ## commands
+
+Each command does one thing. The table lists every command with its one-line job:
 
 | command              | description                                                |
 | -------------------- | ---------------------------------------------------------- |
@@ -65,43 +89,32 @@ python -m reinvent26 fill             # book
 | `map`                | build event map and launch ledger from catalog             |
 | `new-sessions`       | diff the live catalog, evaluate new sessions, report       |
 
+PKCE means Proof Key for Code Exchange. It is the browser sign-in flow the Events API requires. You never handle its secrets by hand.
+
 ## events mcp
 
-the same api is available as the aws events mcp server at
-`https://api.awsevents.com/mcp` (streamable http) for ai assistants and
-agents. we do not ship our own mcp server; the cli above is the scriptable
-interface and the mcp server is the interactive one. both follow the rules
-in [skills/awsevents-muse/SKILL.md](skills/awsevents-muse/SKILL.md).
+The same Events API is available as the AWS Events MCP server at `https://api.awsevents.com/mcp`. MCP means Model Context Protocol. It carries the same operations over streaming HTTP (hypertext transfer protocol) for AI assistants. This repo does not ship its own MCP server. The CLI above is the scriptable interface. The MCP server is the interactive one. Both follow the rules in [skills/awsevents-muse/SKILL.md](skills/awsevents-muse/SKILL.md) — that skill is the shared rulebook, so read it before driving either interface.
 
-getting up and running:
+You follow five rules with either interface:
 
-1. sign in with your Builder ID. the oauth flow uses pkce with a loopback
-   callback, so sign-in lands on `127.0.0.1:8484` on your own machine.
-   headless host: forward the port from a machine with a browser first
-   (`ssh -L 8484:localhost:8484 <host>`), then `python -m reinvent26 login`
-   on the host. tokens live 60 minutes (access) and 30 days (refresh).
-2. every mcp tool call needs sign-in, including catalog reads. that differs
-   from rest, where public `ListEvents` needs no token.
-3. walk the catalog the cheap way: `ListSessions` with
-   `includeAbstracts=false`, follow `nextToken` until absent (a short page
-   is not the last page), shortlist locally, then `GetSession` for
-   abstracts and `seatAvailability` on the shortlist only.
-4. favorites record interest, they do not reserve seats. reserve 1-10 ids
-   per call. http 200 on a batch never means every session succeeded:
-   inspect each per-session result, then confirm with `GetSchedule`.
-5. on an unknown write outcome (timeout, 500, 503) never blind-resend.
-   read the schedule, compare with intent, submit only what remains.
-   404 on cancel or remove means already absent: complete.
+1. Sign in with your Builder ID first. The sign-in uses PKCE with a loopback callback. It lands on `127.0.0.1:8484` on your own machine. Your access token lasts 60 minutes. Your refresh token lasts 30 days.
+2. Expect sign-in on every MCP tool call, including catalog reads. The REST interface differs here: public `ListEvents` needs no token.
+3. Pull the catalog the cheap way. You request `ListSessions` with `includeAbstracts=false`. You follow `nextToken` until it is absent. A short page is not the last page. You shortlist locally. You call `GetSession` for abstracts and `seatAvailability` on the shortlist only.
+4. Treat favorites as interest, not seats. You reserve 1 to 10 ids per call. You never trust an HTTP 200 on a batch. You inspect each per-session result. You confirm with `GetSchedule`.
+5. Never blind-resend an unknown write outcome. You read the schedule. You compare it with your intent. You submit only what remains. A 404 on cancel or remove means already absent, so you treat it as complete.
 
-full call order and live state: [docs/mcp-approach.md](docs/mcp-approach.md).
-field notes and enums: [docs/api-field-notes.md](docs/api-field-notes.md).
+You use the server from another assistant through a per-assistant guide. Each guide gives the exact config for that assistant and nothing else:
 
-use the server from another assistant: [kiro-cli](docs/integrations/kiro-cli.md),
-[Meta Muse](docs/integrations/meta-muse.md),
-[Microsoft Copilot](docs/integrations/copilot.md),
-[Google Gemini](docs/integrations/gemini.md).
+- [kiro-cli](docs/integrations/kiro-cli.md)
+- [Meta Muse](docs/integrations/meta-muse.md)
+- [Microsoft Copilot](docs/integrations/copilot.md)
+- [Google Gemini](docs/integrations/gemini.md)
+
+You read the call-by-call record in [docs/mcp-approach.md](docs/mcp-approach.md). It shows the live schedule state. It gives the exact MCP walkthrough order. You read enums and hard-won lessons in [docs/api-field-notes.md](docs/api-field-notes.md). It lists every result code. It records what actually happened against the live API.
 
 ## architecture
+
+The tree mirrors the commands. Each file owns one job:
 
 ```
 cli/reinvent26/
@@ -136,7 +149,7 @@ docs/
   local-models.md          # local model setup for rank command
   samples/                 # api response shapes
 tests/
-  *_test.py                # pytest unit tests
+  test_*.py                # pytest unit tests
 skills/
   awsevents-muse/
     SKILL.md               # MCP skill definition
@@ -146,39 +159,43 @@ rust/
 
 ## data files
 
-curated session lists live in `data/reinvent2026/*.json`. each file groups sessions by interest lens. the schema is documented in `docs/data-schema.md`.
+Curated session lists live in `data/reinvent2026/*.json`. Each file groups sessions by interest lens. You read the schema in [docs/data-schema.md](docs/data-schema.md) — it defines the session shape and the ingest layout before you add a file.
 
 ## tests
 
+You run the suite with:
+
 ```bash
-python -m pytest -q
+python3 -m pytest -q
 ```
 
 ## contributing gate
 
-enable the pre-push hook once per clone:
+You enable the pre-push hook once per clone:
 
 ```bash
 git config core.hooksPath .githooks
 ```
 
-pre-push runs secret-shape scan, compile, pytest, and the offline demo. all must pass before pushing.
+The hook runs a secret-shape scan, compile, pytest, and the offline demo. You must see all four pass before you push.
 
 ## docs
 
-- [docs/sign-in.md](docs/sign-in.md) — Builder ID sign-in: how to tell, Mac recipe, lifetimes, errors
-- [docs/hallway-windows.md](docs/hallway-windows.md) — breakfast, lunch, dinner, and morning/midday/evening meetup slots
-- [docs/daily-new-sessions.md](docs/daily-new-sessions.md) — watcher runbook: new-session diffs, local-model eval, cron setup
-- [docs/roadmap.md](docs/roadmap.md) — planned work, ordered by value over effort
-- [docs/integrations/kiro-cli.md](docs/integrations/kiro-cli.md) — kiro-cli install, MCP config, watcher handoff
-- [docs/integrations/meta-muse.md](docs/integrations/meta-muse.md) — Meta Muse in-chat custom connector
-- [docs/integrations/copilot.md](docs/integrations/copilot.md) — Copilot routes that can reach the server
-- [docs/integrations/gemini.md](docs/integrations/gemini.md) — Gemini web app and Gemini CLI
-- [docs/mcp-approach.md](docs/mcp-approach.md) — mcp vs cli sign-in patterns and live schedule state
-- [docs/event-map.md](docs/event-map.md) — venue map with travel times
-- [docs/launch-ledger.md](docs/launch-ledger.md) — sessions signaling new launches
-- [docs/daily-fill.md](docs/daily-fill.md) — seat-filling runbook
-- [docs/api-field-notes.md](docs/api-field-notes.md) — api calls, enums, lessons learned
+Each doc answers one question. You start with `sign-in.md` and branch from there:
+
+- [docs/sign-in.md](docs/sign-in.md) — how to tell if you are signed in, the Mac recipe, token lifetimes, and what each error means. Read this first when anything fails.
+- [docs/hallway-windows.md](docs/hallway-windows.md) — breakfast, lunch, dinner, and morning/midday/evening meetup slots. Read this to find Bryan between sessions.
+- [docs/daily-new-sessions.md](docs/daily-new-sessions.md) — the watcher runbook: new-session diffs, local-model eval, and cron setup. Read this to automate the morning report.
+- [docs/roadmap.md](docs/roadmap.md) — planned work, ordered by value over effort. Read this before proposing a feature.
+- [docs/integrations/kiro-cli.md](docs/integrations/kiro-cli.md) — kiro-cli install, MCP config, and watcher handoff. Read this to drive the API from kiro-cli.
+- [docs/integrations/meta-muse.md](docs/integrations/meta-muse.md) — Meta Muse custom connector, verified limits, and the report-paste pattern. Read this to use Muse with the planner.
+- [docs/integrations/copilot.md](docs/integrations/copilot.md) — the Copilot routes that can reach the server. Read this to pick your Copilot path.
+- [docs/integrations/gemini.md](docs/integrations/gemini.md) — Gemini web app and Gemini CLI. Read this to use Gemini with the planner.
+- [docs/mcp-approach.md](docs/mcp-approach.md) — MCP versus CLI sign-in patterns and live schedule state. Read this for the call-by-call record.
+- [docs/event-map.md](docs/event-map.md) — venue map with travel times. Read this to plan walks between venues.
+- [docs/launch-ledger.md](docs/launch-ledger.md) — sessions signaling new launches, regenerated from the catalog. Read this to spot announcements.
+- [docs/daily-fill.md](docs/daily-fill.md) — seat-filling runbook. Read this to book released seats by hand.
+- [docs/api-field-notes.md](docs/api-field-notes.md) — API calls, enums, and lessons learned. Read this before debugging any API surprise.
 
 ## license
 

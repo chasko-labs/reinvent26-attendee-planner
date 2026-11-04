@@ -1,6 +1,6 @@
 # daily new sessions: watcher runbook
 
-`python -m reinvent26 new-sessions` diffs the live catalog against the
+`python3 -m reinvent26 new-sessions` diffs the live catalog against the
 cache, evaluates added sessions with the local model, and writes a dated
 report plus a handoff prompt for kiro-cli with the Events MCP server.
 read-only against the api: it never reserves, favorites, or writes
@@ -39,7 +39,7 @@ treated as an outage (exit 1, cache untouched), never as "all removed".
 
 ## cron on rocm-aibox (systemd, twice daily)
 
-the watcher needs your stored token (`python -m reinvent26 login` once;
+the watcher needs your stored token (`python3 -m reinvent26 login` once;
 refresh lasts 30 days, so re-sign-in monthly or the run exits 2). the
 local model endpoint is optional; without it the report falls back to
 topic tags.

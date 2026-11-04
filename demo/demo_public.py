@@ -4,7 +4,7 @@ Uses checked-in cached samples only. Exercises the same pure schedule
 logic the live CLI uses: shortlist, clash check, open-slot finder, and
 stack-aware keyword mapping.
 
-Run: python demo/demo_public.py
+Run: python3 demo/demo_public.py
 No EVENTS_ACCESS_TOKEN is read or required. No tokens are printed.
 """
 

@@ -807,7 +807,7 @@ def main(argv=None) -> None:
         elif os.path.exists(sess_path):
             args.catalog = sess_path
         else:
-            print(f"error: catalog not found at {cat_path} or {sess_path}; run 'python -m reinvent26 sessions reinvent2026' first", file=sys.stderr)
+            print(f"error: catalog not found at {cat_path} or {sess_path}; run 'python3 -m reinvent26 sessions reinvent2026' first", file=sys.stderr)
             print(f"note: catalog persists in project at .cache/reinvent2026/catalog.json; tests never write catalog", file=sys.stderr)
             raise SystemExit(2)
 

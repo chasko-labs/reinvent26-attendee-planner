@@ -9,9 +9,9 @@ regenerate before the event. no multilanguage anything: english only.
 
 ```
 cd cli
-python -m reinvent26 schedule reinvent2026          # current held seats
-python -m reinvent26 slots reinvent2026 --window 2026-12-01T08:00:00,2026-12-01T12:00:00
-python -m reinvent26 fill --dry-run                 # what still fits
+python3 -m reinvent26 schedule reinvent2026          # current held seats
+python3 -m reinvent26 slots reinvent2026 --window 2026-12-01T08:00:00,2026-12-01T12:00:00
+python3 -m reinvent26 fill --dry-run                 # what still fits
 ```
 
 a window below is real only if it survives the venue-gap rules in

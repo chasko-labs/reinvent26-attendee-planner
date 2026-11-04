@@ -10,7 +10,7 @@ favorites, or writes personal time):
 
 Inputs
   .cache/reinvent2026/sessions.json   last snapshot (ListSessions, abstracts optional)
-  stored token via reinvent26.auth    python -m reinvent26 login, or EVENTS_ACCESS_TOKEN
+  stored token via reinvent26.auth    python3 -m reinvent26 login, or EVENTS_ACCESS_TOKEN
   local OpenAI-compat endpoint        default http://127.0.0.1:8181/v1; when it is
                                       unreachable the report still runs on the
                                       deterministic topic-tag fallback
@@ -330,7 +330,7 @@ def run(event_id: str, dry_run: bool, workers: int, max_checks: int,
     """Fetch, diff, enrich, evaluate, report. Returns a process exit code."""
     token = access_token()
     if not token:
-        print("error: no valid token; run `python -m reinvent26 login` first", file=sys.stderr)
+        print("error: no valid token; run `python3 -m reinvent26 login` first", file=sys.stderr)
         return 2
     old = cache.load_cached_sessions(event_id)
     try:

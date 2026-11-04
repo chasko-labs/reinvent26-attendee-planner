@@ -11,7 +11,7 @@ Inputs
   .cache/reinvent2026/catalog.json      full catalog snapshot (ListSessions with abstracts)
   .cache/reinvent2026/seats-sweep.json  seatAvailability per session code (rebalance only; from seats.py)
   data/reinvent2026/map-config.json     venue gaps, format weights, topic weights, exclusion rules
-  stored token via reinvent26.auth      python -m reinvent26 login, or set EVENTS_ACCESS_TOKEN
+  stored token via reinvent26.auth      python3 -m reinvent26 login, or set EVENTS_ACCESS_TOKEN
 
 Side effects
   POST /reservations and DELETE /reservations/{id} against the live Events API (unless --dry-run)
@@ -277,7 +277,7 @@ def run(dry_run: bool, workers: int, max_checks: int) -> int:
         return 2
     token = access_token()
     if not token:
-        print("fail: no valid token; run python -m reinvent26 login (or set EVENTS_ACCESS_TOKEN)", file=sys.stderr)
+        print("fail: no valid token; run python3 -m reinvent26 login (or set EVENTS_ACCESS_TOKEN)", file=sys.stderr)
         return 2
 
     read_started = time.time()
@@ -350,7 +350,7 @@ def rebalance(dry_run: bool, workers: int) -> int:
     config = mapper._load_config()
     token = access_token()
     if not token:
-        print("fail: no valid token; run python -m reinvent26 login (or set EVENTS_ACCESS_TOKEN)", file=sys.stderr)
+        print("fail: no valid token; run python3 -m reinvent26 login (or set EVENTS_ACCESS_TOKEN)", file=sys.stderr)
         return 2
     cache_dir = os.path.join(repo_root(), ".cache", EVENT_ID)
     with open(os.path.join(cache_dir, "catalog.json"), encoding="utf-8") as catalog_file:

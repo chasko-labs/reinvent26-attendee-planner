@@ -24,11 +24,11 @@ the cli with no token at all:
 
 ```
 cd cli
-python -m reinvent26 events
-python -m reinvent26 status
+python3 -m reinvent26 events
+python3 -m reinvent26 status
 ```
 
-or run the bundled no-token demo: `python demo/demo_public.py`.
+or run the bundled no-token demo: `python3 demo/demo_public.py`.
 
 ## authenticated connector: blocked at sign-in (observed)
 

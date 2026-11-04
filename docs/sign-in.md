@@ -34,7 +34,7 @@ three answers, each naming the fix:
   sign-in carries your registration.
 - `signed in: expired access token refreshed just now` — good; the
   30-day refresh did its job silently.
-- `signed out: ...; run python -m reinvent26 login` — the refresh is
+- `signed out: ...; run python3 -m reinvent26 login` — the refresh is
   dead (older than 30 days or revoked). the schedule line will read
   `schedule unreadable (401): sign in first`. sign in again.
 

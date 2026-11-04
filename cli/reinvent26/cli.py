@@ -1,4 +1,4 @@
-"""cli entry point: python -m reinvent26 <command>."""
+"""cli entry point: python3 -m reinvent26 <command>."""
 
 from __future__ import annotations
 
@@ -78,14 +78,14 @@ def token_status_line(now: float | None = None) -> str:
     """One-line human summary of the stored sign-in. Never prints secrets."""
     stored = auth.load_tokens()
     if not stored or not stored.get("access_token"):
-        return "signed out: no stored token; run `python -m reinvent26 login`"
+        return "signed out: no stored token; run `python3 -m reinvent26 login`"
     now = time.time() if now is None else now
     if stored.get("expires_at", 0) > now + 60:
         live_until = time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime(stored["expires_at"]))
         return f"signed in: access token live until {live_until}"
     if auth.stored_access_token():
         return "signed in: expired access token refreshed just now"
-    return "signed out: refresh token dead (older than 30 days or revoked); run `python -m reinvent26 login`"
+    return "signed out: refresh token dead (older than 30 days or revoked); run `python3 -m reinvent26 login`"
 
 
 def cmd_status(args):

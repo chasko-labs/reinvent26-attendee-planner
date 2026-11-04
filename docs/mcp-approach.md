@@ -22,7 +22,7 @@ the rulebook both sides follow.
 the events oauth endpoint uses a loopback redirect, so headless sign-in requires forwarding the callback port from a machine with a browser:
 
 1. on a machine with a browser: `ssh -L 8484:localhost:8484 <headless-host>`
-2. on the host: `python -m reinvent26 login` prints the authorize url and
+2. on the host: `python3 -m reinvent26 login` prints the authorize url and
    listens on `127.0.0.1:8484`
 3. sign in with builder id in the browser on the first machine; the callback tunnels back
 4. tokens land in the OS keychain or `~/.config/reinvent26/tokens.json`
@@ -51,14 +51,14 @@ the auth module (`cli/reinvent26/auth.py`) handles pkce s256 and token storage. 
 
 ```
 cd cli
-python -m reinvent26 login
-python -m reinvent26 sessions reinvent2026            # full pull, cached
-python -m reinvent26 shortlist reinvent2026 --topics agents,mcp --level 3 --top 20
-python -m reinvent26 schedule reinvent2026            # clashes included
-python -m reinvent26 slots reinvent2026 --window 2026-12-01T13:00:00,2026-12-01T16:00:00
-python -m reinvent26 map                              # docs/event-map.md + launch ledger
-python -m reinvent26 fill --dry-run                   # what fits, books nothing
-python -m reinvent26 fill                             # book open seats, single pass
+python3 -m reinvent26 login
+python3 -m reinvent26 sessions reinvent2026            # full pull, cached
+python3 -m reinvent26 shortlist reinvent2026 --topics agents,mcp --level 3 --top 20
+python3 -m reinvent26 schedule reinvent2026            # clashes included
+python3 -m reinvent26 slots reinvent2026 --window 2026-12-01T13:00:00,2026-12-01T16:00:00
+python3 -m reinvent26 map                              # docs/event-map.md + launch ledger
+python3 -m reinvent26 fill --dry-run                   # what fits, books nothing
+python3 -m reinvent26 fill                             # book open seats, single pass
 ```
 
 seat-aware planning (`seats.py`, `mapper.py`, `fill.py`):

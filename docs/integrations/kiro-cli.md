@@ -62,7 +62,7 @@ restart kiro-cli (or reload the window) after editing.
 
 ## use it with the watcher handoff
 
-`python -m reinvent26 new-sessions` writes a report ending in a handoff
+`python3 -m reinvent26 new-sessions` writes a report ending in a handoff
 block (`docs/daily-new-sessions.md`). paste that block into kiro-cli:
 it names the exact session ids, what clashes, and that `GetSchedule` is
 the source of truth. kiro-cli reserves and favorites through the MCP
