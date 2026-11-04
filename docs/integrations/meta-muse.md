@@ -30,15 +30,25 @@ python -m reinvent26 status
 
 or run the bundled no-token demo: `python demo/demo_public.py`.
 
-## authenticated connector: blocked at sign-in
+## authenticated connector: blocked at sign-in (observed)
 
 entering the shared public client ID `7vmom55m1qstvq8i71ph127bfq`
 in the connector's Client ID field returns "An error was encountered
 with the requested page." the connector registers holding no
-credential, so setup never completes. the cause is the callback rule:
-AWS accepts only loopback callbacks on ports 8484–8489, matched in
-full; Muse signs in through a hosted callback. booking, favorites,
-and schedule reads from inside Muse stay blocked until either side
+credential, so setup never completes. AWS's own OAuth endpoint names
+the cause:
+
+```
+https://oauth.awsevents.com/error?error=redirect_mismatch&client_id=7vmom55m1qstvq8i71ph127bfq
+```
+
+`redirect_mismatch`: AWS matched Muse's hosted callback
+(`https://agent.meta.ai/api/hatch/oauth/callback`) against its
+registered callbacks, found only loopback ports 8484–8489, and
+rejected it. screenshots reviewed 2026-11-04 (macmini desktop,
+11:40–12:06): Client ID screen, the error page, and Muse confirming
+`custom.awsevents` holds no credential. booking, favorites, and
+schedule reads from inside Muse stay blocked until either side
 changes. do not retry the same entry — it fails the same way.
 
 ## the pattern that works today
