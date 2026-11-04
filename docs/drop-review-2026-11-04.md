@@ -101,6 +101,7 @@ backup already favorited: AIM312-R (RL reasoning agents). seat: full.
 
 keep. the tagger matches keywords, and "self-managed OLTP" is not an
 agent session — but it is your lens minute for minute.
+
 - FAV HMC403-R, 08:30-10:30, MGM, self-managed agents. seat: full.
 - FAV AIM402, 08:00-10:00, MGM, SageMaker fine-tuning. seat: full.
 - CMP402, 08:30-10:30, MGM, hybrid quantum. seat: full.
