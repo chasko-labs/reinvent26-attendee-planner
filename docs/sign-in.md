@@ -48,8 +48,8 @@ the macmini. you run nothing over ssh until step 6.
 3. confirm the remote. you run `git remote -v`. you must see `chasko-labs/reinvent26-attendee-planner`. any other URL means a stale clone. stop and reclone.
 4. update. you run `git pull`. you expect "Already up to date" or a short fast-forward list.
 5. verify the cli loads. you run `cd cli && python3 -m reinvent26 status reinvent2026`. you expect a sign-in line, an api reachability line, and a schedule line. any `command not found: python` means you typed `python` instead of `python3`.
-6. open a second terminal tab for the box. you run `ssh -L 8484:localhost:8484 bryanchasko@192.168.4.53`. you stay in this session for steps 7 to 9.
-7. sign in on the box. you run `cd ~/code/chasko-labs/reinvent26-planner/cli && python3 -m reinvent26 login`. the command prints a URL.
+6. open a second terminal tab for the box. you run `ssh -L 8484:localhost:8484 bryanchasko@192.168.4.53`. you land in `~/code/heraldstack` (the box's start directory), on whatever branch that checkout holds. that directory is not the planner. you stay in this session for steps 7 to 9.
+7. go to the planner repo, then sign in. you run `cd ~/code/chasko-labs/reinvent26-planner/cli && python3 -m reinvent26 login`. the tilde path works from any start directory. the command prints a URL.
 8. approve in your Mac browser. you open the printed URL, sign in with Builder ID, and approve. the callback travels back through the ssh tunnel.
 9. confirm on the box. you run `python3 -m reinvent26 status reinvent2026`. you expect `signed in` and `schedule readable`. you then type `exit` to close the ssh session.
 
