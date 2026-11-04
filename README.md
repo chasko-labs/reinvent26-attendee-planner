@@ -41,28 +41,29 @@ python -m reinvent26 fill             # book
 
 ## commands
 
-| command              | description                                               |
-| -------------------- | --------------------------------------------------------- |
-| `login`              | sign in with Builder ID (PKCE, loopback callback)         |
-| `events`             | list current/upcoming events                              |
-| `sessions`           | list catalog pages until no nextToken                     |
-| `shortlist`          | rank sessions by topic keywords                           |
-| `schedule`           | show schedule plus double bookings                        |
-| `slots`              | list sessions fitting free windows with no clash          |
-| `favorite`           | favorite up to 10 session ids per call                    |
-| `block`              | create a personal-time block                              |
-| `reblock`            | replace every field of a personal-time block              |
-| `unblock`            | delete a personal-time block                              |
-| `remove-favorite`    | remove one favorite                                       |
-| `cancel-reservation` | cancel one reservation                                    |
-| `stack-pick`         | stack-aware shortlist from live resources                 |
-| `rank`               | rank cached catalog via local model                       |
-| `ingest`             | load curated sessions into cache                          |
-| `reserve`            | reserve seats                                             |
-| `fill`               | book open seats into free windows of the live schedule    |
-| `interest`           | write full-but-interesting page with presenters to follow |
-| `map`                | build event map and launch ledger from catalog            |
-| `new-sessions`       | diff the live catalog, evaluate new sessions, report      |
+| command              | description                                                |
+| -------------------- | ---------------------------------------------------------- |
+| `login`              | sign in with Builder ID (PKCE, loopback callback)          |
+| `status`             | show sign-in state, api reachability, schedule readability |
+| `events`             | list current/upcoming events                               |
+| `sessions`           | list catalog pages until no nextToken                      |
+| `shortlist`          | rank sessions by topic keywords                            |
+| `schedule`           | show schedule plus double bookings                         |
+| `slots`              | list sessions fitting free windows with no clash           |
+| `favorite`           | favorite up to 10 session ids per call                     |
+| `block`              | create a personal-time block                               |
+| `reblock`            | replace every field of a personal-time block               |
+| `unblock`            | delete a personal-time block                               |
+| `remove-favorite`    | remove one favorite                                        |
+| `cancel-reservation` | cancel one reservation                                     |
+| `stack-pick`         | stack-aware shortlist from live resources                  |
+| `rank`               | rank cached catalog via local model                        |
+| `ingest`             | load curated sessions into cache                           |
+| `reserve`            | reserve seats                                              |
+| `fill`               | book open seats into free windows of the live schedule     |
+| `interest`           | write full-but-interesting page with presenters to follow  |
+| `map`                | build event map and launch ledger from catalog             |
+| `new-sessions`       | diff the live catalog, evaluate new sessions, report       |
 
 ## events mcp
 
@@ -105,7 +106,7 @@ use the server from another assistant: [kiro-cli](docs/integrations/kiro-cli.md)
 ```
 cli/reinvent26/
   __main__.py     # entry point
-  cli.py          # argparse scaffolding, 20 subcommands
+  cli.py          # argparse scaffolding, 21 subcommands
   api.py          # Events API client (stdlib only)
   auth.py         # Builder ID OAuth with PKCE, keychain/file storage
   cache.py        # .cache/<eventId>/ caching layer
@@ -165,6 +166,7 @@ pre-push runs secret-shape scan, compile, pytest, and the offline demo. all must
 
 ## docs
 
+- [docs/sign-in.md](docs/sign-in.md) — Builder ID sign-in: how to tell, Mac recipe, lifetimes, errors
 - [docs/hallway-windows.md](docs/hallway-windows.md) — breakfast, lunch, dinner, and morning/midday/evening meetup slots
 - [docs/daily-new-sessions.md](docs/daily-new-sessions.md) — watcher runbook: new-session diffs, local-model eval, cron setup
 - [docs/roadmap.md](docs/roadmap.md) — planned work, ordered by value over effort

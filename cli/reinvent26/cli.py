@@ -6,6 +6,7 @@ import argparse
 import json
 import os
 import sys
+import time
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -71,6 +72,48 @@ def cmd_login(args):
         raise SystemExit(1)
     print("# signed in with Builder ID; access token good for ~60 minutes, "
           "refresh for 30 days")
+
+
+def token_status_line(now: float | None = None) -> str:
+    """One-line human summary of the stored sign-in. Never prints secrets."""
+    stored = auth.load_tokens()
+    if not stored or not stored.get("access_token"):
+        return "signed out: no stored token; run `python -m reinvent26 login`"
+    now = time.time() if now is None else now
+    if stored.get("expires_at", 0) > now + 60:
+        live_until = time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime(stored["expires_at"]))
+        return f"signed in: access token live until {live_until}"
+    if auth.stored_access_token():
+        return "signed in: expired access token refreshed just now"
+    return "signed out: refresh token dead (older than 30 days or revoked); run `python -m reinvent26 login`"
+
+
+def cmd_status(args):
+    print(token_status_line())
+    try:
+        events = api.list_events(include_past=args.include_past)
+    except api.EventsError as e:
+        print(f"events api unreachable: {e}")
+        return
+    items = events.get("items") if isinstance(events, dict) else None
+    ids = [e.get("eventId") for e in items] if isinstance(items, list) else []
+    print(f"events api reachable: {len(ids)} events "
+          f"({', '.join(i for i in ids if i) or 'none listed'})")
+    if not args.event_id:
+        return
+    try:
+        sched = api.get_schedule(args.event_id, _token(args))
+    except api.EventsError as e:
+        if getattr(e, "status", None) == 401:
+            print("schedule unreadable (401): sign in first")
+        elif getattr(e, "status", None) == 403:
+            print("schedule unreadable (403): valid sign-in, but not registered for this event")
+        else:
+            print(f"schedule unreadable: {e}")
+        return
+    node = sched.get("schedule", {}) if isinstance(sched, dict) else {}
+    print(f"schedule readable: {len(node.get('reserved', []) or [])} reserved, "
+          f"{len(node.get('favorites', []) or [])} favorites")
 
 
 def cmd_events(args):
@@ -590,6 +633,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     lg = sub.add_parser("login", help="sign in with Builder ID (PKCE, loopback callback)")
     lg.set_defaults(fn=cmd_login)
+
+    st = sub.add_parser("status", help="show sign-in state, api reachability, and schedule readability")
+    st.add_argument("event_id", nargs="?", default=None, help="also read this event schedule")
+    st.add_argument("--include-past", action="store_true")
+    st.set_defaults(fn=cmd_status)
 
     e = sub.add_parser("events", help="list current/upcoming events")
     e.add_argument("--include-past", action="store_true")
