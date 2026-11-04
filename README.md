@@ -62,6 +62,7 @@ python -m reinvent26 fill             # book
 | `fill`               | book open seats into free windows of the live schedule    |
 | `interest`           | write full-but-interesting page with presenters to follow |
 | `map`                | build event map and launch ledger from catalog            |
+| `new-sessions`       | diff the live catalog, evaluate new sessions, report      |
 
 ## events mcp
 
@@ -94,12 +95,17 @@ getting up and running:
 full call order and live state: [docs/mcp-approach.md](docs/mcp-approach.md).
 field notes and enums: [docs/api-field-notes.md](docs/api-field-notes.md).
 
+use the server from another assistant: [kiro-cli](docs/integrations/kiro-cli.md),
+[Muse web app](docs/integrations/claude-app.md),
+[Microsoft Copilot](docs/integrations/copilot.md),
+[Google Gemini](docs/integrations/gemini.md).
+
 ## architecture
 
 ```
 cli/reinvent26/
   __main__.py     # entry point
-  cli.py          # argparse scaffolding, 18 subcommands
+  cli.py          # argparse scaffolding, 20 subcommands
   api.py          # Events API client (stdlib only)
   auth.py         # Builder ID OAuth with PKCE, keychain/file storage
   cache.py        # .cache/<eventId>/ caching layer
@@ -109,6 +115,7 @@ cli/reinvent26/
   seats.py        # seat availability sweeping
   fill.py         # book open seats into free windows
   interest.py     # full-but-interesting page generator
+  newevents.py    # daily new-session diff, local-model eval, report + handoff
   inventory.py    # catalog dump to json for debugging
   seeds.py        # re:invent 2026 topic/venue defaults
   seeds.json      # curated session count targets
@@ -158,8 +165,12 @@ pre-push runs secret-shape scan, compile, pytest, and the offline demo. all must
 
 ## docs
 
-- [docs/competition-ledger.md](docs/competition-ledger.md) — rival hackathon entries, steal-or-skip verdicts, ranked gaps
 - [docs/hallway-windows.md](docs/hallway-windows.md) — breakfast, lunch, dinner, and morning/midday/evening meetup slots
+- [docs/daily-new-sessions.md](docs/daily-new-sessions.md) — watcher runbook: new-session diffs, local-model eval, cron setup
+- [docs/integrations/kiro-cli.md](docs/integrations/kiro-cli.md) — kiro-cli install, MCP config, watcher handoff
+- [docs/integrations/claude-app.md](docs/integrations/claude-app.md) — Muse web app custom connector
+- [docs/integrations/copilot.md](docs/integrations/copilot.md) — Copilot routes that can reach the server
+- [docs/integrations/gemini.md](docs/integrations/gemini.md) — Gemini web app and Gemini CLI
 - [docs/mcp-approach.md](docs/mcp-approach.md) — mcp vs cli sign-in patterns and live schedule state
 - [docs/event-map.md](docs/event-map.md) — venue map with travel times
 - [docs/launch-ledger.md](docs/launch-ledger.md) — sessions signaling new launches

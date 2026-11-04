@@ -25,6 +25,19 @@ def cmd_map(args) -> None:
     mapper_mod.main(argv)
 
 
+def cmd_new_sessions(args) -> None:
+    """Diff the live catalog, evaluate new sessions, write the daily report."""
+    import reinvent26.newevents as newevents_mod
+    argv = [args.event_id]
+    if args.dry_run:
+        argv.append("--dry-run")
+    argv += ["--workers", str(args.workers), "--max-checks", str(args.max_checks),
+             "--endpoint", args.endpoint, "--model", args.model]
+    if args.out_dir:
+        argv += ["--out-dir", args.out_dir]
+    raise SystemExit(newevents_mod.main(argv))
+
+
 def cmd_fill(args) -> None:
     """Book open seats into free windows of the live schedule."""
     import reinvent26.fill as fill_mod
@@ -739,6 +752,16 @@ def build_parser() -> argparse.ArgumentParser:
     mp.add_argument("--catalog", default=None, help="catalog JSON path")
     mp.add_argument("--out-dir", default=None, help="output directory (default: docs)")
     mp.set_defaults(fn=cmd_map)
+
+    ns = sub.add_parser("new-sessions", help="diff the live catalog, evaluate new sessions, write a daily report")
+    ns.add_argument("event_id", nargs="?", default="reinvent2026")
+    ns.add_argument("--dry-run", action="store_true", help="print the report, write nothing")
+    ns.add_argument("--workers", type=int, default=6)
+    ns.add_argument("--max-checks", type=int, default=100, help="cap on live GetSession checks")
+    ns.add_argument("--endpoint", default=rank.DEFAULT_ENDPOINT)
+    ns.add_argument("--model", default="local")
+    ns.add_argument("--out-dir", default=None, help="report directory (default: docs/new-sessions)")
+    ns.set_defaults(fn=cmd_new_sessions)
 
     return p
 
