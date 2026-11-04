@@ -37,12 +37,13 @@ first run with no cache records a baseline and reports everything as
 added; the second run is the first real diff. an empty live catalog is
 treated as an outage (exit 1, cache untouched), never as "all removed".
 
-## cron on rocm-aibox (systemd, twice daily)
+## cron on your always-on machine (systemd, twice daily)
 
+ours runs on a home server; yours can be any machine that stays up.
 the watcher needs your stored token (`python3 -m reinvent26 login` once;
 refresh lasts 30 days, so re-sign-in monthly or the run exits 2). the
 local model endpoint is optional; without it the report falls back to
-topic tags.
+topic tags. replace `<path-to-repo>` with your clone in the units below.
 
 what login prints (captured from the cli on rocm-aibox; values redacted,
 each run mints fresh ones):
@@ -69,7 +70,7 @@ Description=reinvent26 new-session watcher
 
 [Service]
 Type=oneshot
-WorkingDirectory=%h/code/chasko-labs/reinvent26-planner/cli
+WorkingDirectory=%h/<path-to-repo>/cli
 ExecStart=/usr/bin/timeout 600 /usr/bin/python3 -m reinvent26 new-sessions reinvent2026
 ```
 
@@ -95,7 +96,7 @@ journalctl --user -u reinvent26-new-sessions -n 20
 cron alternative:
 
 ```
-0 7,19 * * * cd ~/code/chasko-labs/reinvent26-planner/cli && timeout 600 python3 -m reinvent26 new-sessions reinvent2026 >> ~/.cache/reinvent26/new-sessions.log 2>&1
+0 7,19 * * * cd ~/<path-to-repo>/cli && timeout 600 python3 -m reinvent26 new-sessions reinvent2026 >> ~/.cache/reinvent26/new-sessions.log 2>&1
 ```
 
 read `docs/new-sessions/new-sessions-<date>.md`, then paste the handoff
