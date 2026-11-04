@@ -63,6 +63,37 @@ python -m reinvent26 fill             # book
 | `interest`           | write full-but-interesting page with presenters to follow |
 | `map`                | build event map and launch ledger from catalog            |
 
+## events mcp
+
+the same api is available as the aws events mcp server at
+`https://api.awsevents.com/mcp` (streamable http) for ai assistants and
+agents. we do not ship our own mcp server; the cli above is the scriptable
+interface and the mcp server is the interactive one. both follow the rules
+in [skills/awsevents-muse/SKILL.md](skills/awsevents-muse/SKILL.md).
+
+getting up and running:
+
+1. sign in with your Builder ID. the oauth flow uses pkce with a loopback
+   callback, so sign-in lands on `127.0.0.1:8484` on your own machine.
+   headless host: forward the port from a machine with a browser first
+   (`ssh -L 8484:localhost:8484 <host>`), then `python -m reinvent26 login`
+   on the host. tokens live 60 minutes (access) and 30 days (refresh).
+2. every mcp tool call needs sign-in, including catalog reads. that differs
+   from rest, where public `ListEvents` needs no token.
+3. walk the catalog the cheap way: `ListSessions` with
+   `includeAbstracts=false`, follow `nextToken` until absent (a short page
+   is not the last page), shortlist locally, then `GetSession` for
+   abstracts and `seatAvailability` on the shortlist only.
+4. favorites record interest, they do not reserve seats. reserve 1-10 ids
+   per call. http 200 on a batch never means every session succeeded:
+   inspect each per-session result, then confirm with `GetSchedule`.
+5. on an unknown write outcome (timeout, 500, 503) never blind-resend.
+   read the schedule, compare with intent, submit only what remains.
+   404 on cancel or remove means already absent: complete.
+
+full call order and live state: [docs/mcp-approach.md](docs/mcp-approach.md).
+field notes and enums: [docs/api-field-notes.md](docs/api-field-notes.md).
+
 ## architecture
 
 ```

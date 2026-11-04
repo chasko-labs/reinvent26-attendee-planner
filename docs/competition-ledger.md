@@ -1,8 +1,9 @@
 # competition ledger: re:Invent event catalog API hackathon
 
-scratch pad, started 2026-11-04. reads all ten public rival entries against
-our cli (`README.md`, `docs/mcp-approach.md`). each entry: what they built,
-the one or two ideas worth stealing, and the verdict for us.
+scratch pad, started 2026-11-04, re:seat added 2026-11-05. reads all
+eleven public rival entries against our cli (`README.md`,
+`docs/mcp-approach.md`). each entry: what they built, the one or two ideas
+worth stealing, and the verdict for us.
 out-of-scope and deferred items live at the bottom with reasons, so we stop
 re-litigating them.
 
@@ -242,6 +243,58 @@ ship.
   shape if we ever do groups.
 - gap vs us: no group views at all. single person to add if groups happen.
 
+### 12. re:seat (harpreet siddhu) — the seat watcher with receipts
+
+- watcher plus own mcp server, no model and no hosted service. plan in
+  whatever ai app you already use through re:seat's 12 tools; the plan
+  becomes a rules file the watcher follows. your ai does the thinking,
+  re:seat does the booking. demo mode with no sign-in
+  (`uvx reseat serve --demo`, browser demo included).
+- empirical seat data, live 12 oct to 1 nov: 21,274 catalog sweeps, whole
+  catalog about once a minute while the laptop is awake. by 1 nov,
+  1,448 of 1,483 reservable sessions were full. 42 openings on 33 full
+  sessions (21 chalk talks, 15 workshops, the rest code talks, gamified,
+  bootcamp). 32 of the 42 stayed open an hour or more; only 5 went full
+  again within 10 minutes. 221 sessions added mid-window, 56 removed,
+  49 connection drops recovered with no write sent.
+- rules-file planning: a target names a talk, re:seat tries its sittings
+  in your order, repeats included, plus any sitting aws adds later. each
+  target lists backups. favorites sync adds targets, never removes yours.
+  imports from the aws portal schedule and from reinvent-planner.cloud.
+- safe swaps: cancel a for wanted b only after a fresh getsession shows b
+  open with no clash, a has a way back, and you allowed it (swap-now tap
+  or auto_swap). b refused means a is rebooked at once, or another open
+  sitting of a. live rollback proven: forced refusal after cancel, old
+  seat re-reserved 4 seconds later and read back.
+- plans to 11 minutes before start, one minute inside aws's 10, and
+  writes leave-now blocks into the official schedule. walk-up odds per
+  wanted talk with a range, labeled heuristic not prediction. on-site
+  mode checks up to 35 held and wanted sessions every 20 seconds.
+- api safety matching ours and then some: no blind retry (timeout settles
+  by reading the schedule back), 200 with per-session failures recorded
+  not resent, quota per operation per minute with batches sized to quota
+  left, 429 waits retry-after once then stops, 401 refreshes once,
+  empty-catalog guard (the api served zero sessions 8 to 12 oct), token
+  in os keychain to api.awsevents.com only. every write checked in
+  getschedule and journaled. caught the personal-time spec change
+  (utc to event wall-clock) same day and moved 15 blocks.
+- writes run only through a plan id from an earlier call: single use,
+  10-minute expiry, dropped when the rules file changes. claude code
+  plugin and kiro powers for install.
+- proof volume sets the bar: 11 pypi releases, 1,357 tests against a fake
+  api including a fault storm, ci on three oses, 18 design decisions,
+  every claim backed by a live record.
+- steal, in order: the empirical opening data (see the polling note in
+  out of scope); leave-now blocks (same gap as walk blocks, but proven
+  with 15 read-back writes); single-use expiring plan ids (the concrete
+  shape our plan-ids gap should copy); target-names-talk with ordered
+  sittings (stronger than our repeat handling); empty-catalog guard
+  (we have no equivalent); their proof discipline per claim.
+- gap vs us: no watcher by design, no leave-now blocks, no plan ids,
+  no empty-catalog guard, no ordered-sittings targets, thinner proof.
+  also the clearest reference design if we ever build our own mcp
+  server: local catalog plus schedule, 12 tools, gated writes, no model.
+
 ## where we stand (honest)
 
 ahead or at parity: rest coverage of all write paths with write-then-verify
@@ -255,21 +308,30 @@ behind, ranked by value over effort:
 
 1. scarcity ordering plus per-card reasons (match, concierge, hallway).
    small change to `fill` ordering and `shortlist` output, visible daily.
-2. repeat groups as one offering (concierge, hallway, planner).
+2. repeat groups as one offering (concierge, hallway, planner, reseat).
    a `_base` strip exists in the mapper; planning does not enforce
-   at-most-one across repeats.
-3. in-venue areas, floors, and the 10-minute rule (planner, concierge).
-   extends map-config, not a rewrite.
-4. walk blocks as personal time (concierge, match, hallway).
-   makes travel visible on the real schedule; needs the charset and
-   timezone traps from hallway rechecked first.
-5. plan ids plus resume on unknown reserve outcomes (riv).
+   at-most-one across repeats. reseat goes further: a target names a
+   talk and tries ordered sittings, including sittings aws adds later.
+3. in-venue areas, floors, and the arrive-by buffer
+   (planner, concierge, reseat). extends map-config, not a rewrite.
+   reseat plans to 11 minutes, one inside aws's 10.
+4. walk and leave-now blocks as personal time
+   (concierge, match, hallway, reseat). makes travel visible on the
+   real schedule; needs the charset and timezone traps from hallway
+   rechecked first, plus reseat's utc-to-wall-clock lesson.
+5. plan ids plus resume on unknown reserve outcomes (riv, reseat).
    `--dry-run` output should be re-runnable, not just readable.
+   reseat's shape is the one to copy: single-use ids, 10-minute
+   expiry, dropped when the rules change. our `--rebalance` rebooks
+   on failure but the double-failure path is untested; reseat proved
+   a 4-second rollback live.
 6. notes plus trip report (sessionmind). `docs/hallway-windows.md` covers
    where to meet; nothing covers what we learned.
 7. availability grid (pathfinder). text tables first, graphics later.
-8. quota buckets per operation (concierge, autopilot). fine at workers=12
-   today; required before any loop or shared demo.
+8. quota buckets per operation (concierge, autopilot, reseat). fine at
+   workers=12 today; required before any loop or shared demo. reseat
+   adds the detail to copy: batch sizes from quota left, 429 waits
+   retry-after once then stops, plus an empty-catalog guard we lack.
 9. groups (hallway, group planner). needs the backend we do not have.
 10. conversational layer and hosted demo (assistant, concierge, pathfinder).
     needs the mcp server decision below.
@@ -281,15 +343,25 @@ behind, ranked by value over effort:
   than not shipping it.
 - quests, qr exchange, world map, ogp cards (planner). social app, not a
   planner; no attendee demand stated.
-- continuous seat polling and auto-snag (concierge, autopilot). polling
-  against no waitlist looks like a bot; hand-run `fill` stays the default.
-  revisit only if the api gains a real waitlist or availability feed.
+- continuous seat polling and auto-snag
+  (concierge, autopilot, reseat). polling against no waitlist looks
+  like a bot; hand-run `fill` stays the default. new fact since the
+  stance was written: reseat measured 42 openings over 21 days and 32
+  of them stayed open an hour or more, so twice-daily hand runs catch
+  nearly everything and only the 5 sub-10-minute ones need a watcher.
+  revisit if we attend with a laptop awake on site, or if the api gains
+  a real waitlist or availability feed.
 
 ## deferred (decided, not scheduled)
 
-- mcp server for our planner. if on-demand functions are needed to support
-  it, prefer rust on graviton lambdas (cost and cold start). no server
-  design exists yet; the cli stays the interface until one does.
+- mcp server for our planner. correct that we never built one: we use
+  the aws events mcp directly (see `skills/awsevents-muse/SKILL.md` and
+  the readme runbook), while riv, concierge, and reseat each built
+  their own extending it. if on-demand functions are needed to support
+  ours, prefer rust on graviton lambdas (cost and cold start).
+  reference design is reseat: local catalog plus schedule, 12 tools,
+  plan-id-gated writes, no model, no hosted service. no server design
+  exists yet; the cli stays the interface until one does.
 - webp animations of the mcp in action on bryanchasko.com/reinvent-26 with
   s3 hosting. blocked on the mcp server existing; brand recipe
   (`~/writing/brand.md`) is stills-first, so stills come before any motion
