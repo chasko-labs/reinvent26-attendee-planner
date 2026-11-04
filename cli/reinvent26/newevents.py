@@ -236,7 +236,7 @@ def _code(s: dict) -> str:
 
 def render_report(date: str, event_id: str, added: list, removed: list,
                   fits: list, conflicts: list, unchecked: list,
-                  held_count: int, method: str) -> str:
+                  held_count: int, method: str, signals: list | None = None) -> str:
     """Daily markdown report for bryan: what is new, what fits, what clashes."""
     lines = [
         f"# new sessions {date} ({event_id})",
@@ -260,6 +260,12 @@ def render_report(date: str, event_id: str, added: list, removed: list,
             )
     else:
         lines.append("none. every new session is full, excluded, or clashes.")
+    lines += ["", "## launch signals among new sessions", ""]
+    if signals:
+        for s in signals:
+            lines.append(f"- {_code(s)} [{s.get('_sig', '')}] {s.get('_kw', '')} — {s.get('title', '')}")
+    else:
+        lines.append("none. no added session title or abstract signals a launch.")
     lines += ["", "## conflicts (open seat, clashes with a held seat)", ""]
     if conflicts:
         for s, clash in conflicts:
@@ -359,9 +365,11 @@ def run(event_id: str, dry_run: bool, workers: int, max_checks: int,
     fits, conflicts = opportunities(ranked, held_reserved, config)
     checked_ids = {id(s) for s in fits} | {id(s) for s, _ in conflicts}
     unchecked = [s for s in ranked if id(s) not in checked_ids]
+    signals = mapper.launch_signals(enriched)
+    print(f"# launch signals among added: {len(signals)}", file=sys.stderr)
     today = _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%d")
     report = render_report(today, event_id, ranked, removed, fits, conflicts,
-                           unchecked, len(held_reserved), method)
+                           unchecked, len(held_reserved), method, signals)
     if dry_run:
         print(report)
         return 0

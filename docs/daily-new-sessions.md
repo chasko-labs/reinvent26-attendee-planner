@@ -19,6 +19,9 @@ and a person pastes it.
   tracked topics from `data/reinvent2026/map-config.json`. unknown codes
   are dropped against the added list. when the endpoint is down the
   report still runs on deterministic topic-tag order and says so.
+- launch signals among the added sessions: title (strong) and abstract
+  (weak) keyword matches, the same detector that writes
+  `docs/launch-ledger.md`. late-added "what's new" sessions show up here.
 - conflicts against your live schedule and opportunities that fit under
   the venue-gap rules.
 

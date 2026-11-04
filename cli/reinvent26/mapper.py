@@ -680,13 +680,20 @@ def _write_event_map(chosen: list, excluded: list, tbd: list, pool: list,
         fh.write("\n".join(lines))
 
 
-def _write_launch_ledger(catalog: list, out_dir: str) -> None:
-    """Write docs/launch-ledger.md."""
+def launch_signals(catalog: list) -> list:
+    """Sessions whose title (strong) or abstract (weak) signals a launch.
+
+    Pure: returns session copies with _sig ("title"/"abstract"), _kw,
+    _start/_end attached, title signals first. Backs the launch ledger
+    and the new-session watcher.
+    """
     NEW = r"\bnew\b|newly|launch|introduc|announc|what's new|preview|now available|just released|first look|latest|next-generation|next generation"
     NEW_A = r"newly launched|recently launched|just launched|new capabilit\w*|new features?|new services?|announc\w*|introduc\w*|preview|now available|what's new|generally available"
 
     led = []
     for s in catalog:
+        if not isinstance(s, dict):
+            continue
         title = s.get("title", "")
         abstract = s.get("abstract") or ""
         m_t = re.findall(NEW, title.lower().replace("launchdarkly", ""))
@@ -710,6 +717,12 @@ def _write_launch_ledger(catalog: list, out_dir: str) -> None:
         led.append(s2)
 
     led.sort(key=lambda x: (x.get("_sig") != "title", x.get("_start") or datetime.max))
+    return led
+
+
+def _write_launch_ledger(catalog: list, out_dir: str) -> None:
+    """Write docs/launch-ledger.md."""
+    led = launch_signals(catalog)
 
     dayname = {0: "mon", 1: "tue", 2: "wed", 3: "thu", 4: "fri", 5: "sat", 6: "sun"}
 
