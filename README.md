@@ -167,6 +167,7 @@ pre-push runs secret-shape scan, compile, pytest, and the offline demo. all must
 
 - [docs/hallway-windows.md](docs/hallway-windows.md) — breakfast, lunch, dinner, and morning/midday/evening meetup slots
 - [docs/daily-new-sessions.md](docs/daily-new-sessions.md) — watcher runbook: new-session diffs, local-model eval, cron setup
+- [docs/roadmap.md](docs/roadmap.md) — planned work, ordered by value over effort
 - [docs/integrations/kiro-cli.md](docs/integrations/kiro-cli.md) — kiro-cli install, MCP config, watcher handoff
 - [docs/integrations/meta-muse.md](docs/integrations/meta-muse.md) — Meta Muse in-chat custom connector
 - [docs/integrations/copilot.md](docs/integrations/copilot.md) — Copilot routes that can reach the server
