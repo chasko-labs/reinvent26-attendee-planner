@@ -1,28 +1,34 @@
 # Meta Muse with the AWS Events MCP server
 
-Muse is Meta's AI assistant. it connects to outside tools through custom
-connectors, which use the Model Context Protocol. there is no add-server
-form: ask Muse in chat to build the connector and hand it the public
-HTTPS URL. the Events server is public HTTPS with OAuth, so it qualifies.
+Muse takes remote MCP servers as custom connectors. the Events
+server is remote HTTPS, so add it by URL:
 
-## add the connector
+1. open a Muse chat, add a custom connector, paste
+   `https://api.awsevents.com/mcp`.
+2. client ID: `7vmom55m1qstvq8i71ph127bfq`, scopes
+   `openid email events/access` (the shared public client from the
+   AWS docs — no secret exists for it).
 
-1. open a Muse chat and ask it to connect a custom MCP connector, with
-   the URL:
-   `https://api.awsevents.com/mcp`
-2. Muse writes the client on its own side, tests the tools, and saves
-   the result as a reusable skill.
-3. sign in with your Builder ID when prompted (scopes
-   `openid email events/access`).
+sign-in runs as Muse's secure OAuth flow and lands on a hosted
+callback. AWS matches the callback in full and publishes no hosted
+redirect for this server — sign-in listens on loopback ports
+8484–8489 only. expect AWS to reject the hosted callback at the
+sign-in step.
 
-Muse runs in Meta's cloud, so it only reaches public servers — no
-localhost tunneling needed on your side. your sign-in still happens in
-your browser.
+## the setup that works
 
-## confirm it works
+authenticated work happens on a machine you own; Muse plans from
+the output:
 
-ask Muse to list events (`reinvent2026` comes back), then ask for your
-schedule: your favorites and reservations prove the sign-in carries the
-registration. work from the handoff block at the bottom of
-`docs/new-sessions/new-sessions-<date>.md` the same way
-`docs/integrations/kiro-cli.md` describes.
+1. home powerdesktop holds the tokens and runs the watcher cron
+   (`docs/sign-in.md` path 2, `docs/daily-new-sessions.md`).
+2. it writes `docs/new-sessions/new-sessions-<date>.md` twice daily.
+3. at the hotel, paste the report into Muse. it plans from real
+   seats, conflicts, and launch signals with nothing to connect.
+4. live seat changes still need a loopback-capable client on your
+   laptop: paste the report's handoff block into kiro-cli
+   (`docs/integrations/kiro-cli.md`) and it books through the
+   Events MCP server right there.
+
+verify the connector any time by asking Muse to list events:
+`reinvent2026` comes back only when sign-in actually succeeded.
