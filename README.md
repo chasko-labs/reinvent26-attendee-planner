@@ -41,27 +41,27 @@ python -m reinvent26 fill             # book
 
 ## commands
 
-| command | description |
-| ------- | ----------- |
-| `login` | sign in with Builder ID (PKCE, loopback callback) |
-| `events` | list current/upcoming events |
-| `sessions` | list catalog pages until no nextToken |
-| `shortlist` | rank sessions by topic keywords |
-| `schedule` | show schedule plus double bookings |
-| `slots` | list sessions fitting free windows with no clash |
-| `favorite` | favorite up to 10 session ids per call |
-| `block` | create a personal-time block |
-| `reblock` | replace every field of a personal-time block |
-| `unblock` | delete a personal-time block |
-| `remove-favorite` | remove one favorite |
-| `cancel-reservation` | cancel one reservation |
-| `stack-pick` | stack-aware shortlist from live resources |
-| `rank` | rank cached catalog via local model |
-| `ingest` | load curated sessions into cache |
-| `reserve` | reserve seats |
-| `fill` | book open seats into free windows of the live schedule |
-| `interest` | write full-but-interesting page with presenters to follow |
-| `map` | build event map and launch ledger from catalog |
+| command              | description                                               |
+| -------------------- | --------------------------------------------------------- |
+| `login`              | sign in with Builder ID (PKCE, loopback callback)         |
+| `events`             | list current/upcoming events                              |
+| `sessions`           | list catalog pages until no nextToken                     |
+| `shortlist`          | rank sessions by topic keywords                           |
+| `schedule`           | show schedule plus double bookings                        |
+| `slots`              | list sessions fitting free windows with no clash          |
+| `favorite`           | favorite up to 10 session ids per call                    |
+| `block`              | create a personal-time block                              |
+| `reblock`            | replace every field of a personal-time block              |
+| `unblock`            | delete a personal-time block                              |
+| `remove-favorite`    | remove one favorite                                       |
+| `cancel-reservation` | cancel one reservation                                    |
+| `stack-pick`         | stack-aware shortlist from live resources                 |
+| `rank`               | rank cached catalog via local model                       |
+| `ingest`             | load curated sessions into cache                          |
+| `reserve`            | reserve seats                                             |
+| `fill`               | book open seats into free windows of the live schedule    |
+| `interest`           | write full-but-interesting page with presenters to follow |
+| `map`                | build event map and launch ledger from catalog            |
 
 ## architecture
 
@@ -124,6 +124,16 @@ git config core.hooksPath .githooks
 ```
 
 pre-push runs secret-shape scan, compile, pytest, and the offline demo. all must pass before pushing.
+
+## docs
+
+- [docs/competition-ledger.md](docs/competition-ledger.md) — rival hackathon entries, steal-or-skip verdicts, ranked gaps
+- [docs/hallway-windows.md](docs/hallway-windows.md) — breakfast, lunch, dinner, and morning/midday/evening meetup slots
+- [docs/mcp-approach.md](docs/mcp-approach.md) — mcp vs cli sign-in patterns and live schedule state
+- [docs/event-map.md](docs/event-map.md) — venue map with travel times
+- [docs/launch-ledger.md](docs/launch-ledger.md) — sessions signaling new launches
+- [docs/daily-fill.md](docs/daily-fill.md) — seat-filling runbook
+- [docs/api-field-notes.md](docs/api-field-notes.md) — api calls, enums, lessons learned
 
 ## license
 
