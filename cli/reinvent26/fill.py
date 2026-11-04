@@ -37,6 +37,14 @@ from reinvent26 import mapper
 EVENT_ID = "reinvent2026"
 OPEN = mapper.OPEN_SEATS  # seatAvailability values that mean a reservation can still succeed
 
+# booking order by seat band: scarcest first, since those seats vanish fastest
+SEAT_SCARCITY = {"veryLimited": 0, "limited": 1, "available": 2}
+
+
+def scarcity_rank(seat: str | None) -> int:
+    """Lower books first; unknown bands sort last."""
+    return SEAT_SCARCITY.get(seat or "", 99)
+
 # fail-fast probe: check this many sessions first and give up if it is slower than the limit
 PROBE_SIZE = 12
 PROBE_MAX_SECONDS = 30
@@ -115,6 +123,25 @@ def priority(session: dict, config: dict) -> float:
         score += RELATED_TOPIC_TIE_BREAK
     duration_minutes = (session["_end"] - session["_start"]).seconds / 60
     return score + duration_minutes / DURATION_TIE_BREAK_MINUTES_PER_POINT
+
+
+def booking_order(sessions: list, seat_by_id: dict, config: dict) -> list:
+    """Book scarcest seats first; format and topic priority break ties in a band."""
+    return sorted(sessions,
+                  key=lambda s: (scarcity_rank(seat_by_id.get(s.get("sessionId"))),
+                                 -priority(s, config)))
+
+
+def reason(session: dict, seat: str | None, config: dict) -> str:
+    """One-line why for a pick: seat band, format, topic match, start time."""
+    core, _rel = mapper._tag(session, config.get("topics", []))
+    bits = [f"{seat or 'unknown'} seats", session.get("type", "?")]
+    if core:
+        bits.append("topics: " + ",".join(core))
+    start = session.get("_start")
+    if start is not None:
+        bits.append(f"starts {start:%a %H:%M}")
+    return " · ".join(bits)
 
 
 def is_excluded_by_rules(session: dict, config: dict) -> bool:
@@ -277,7 +304,9 @@ def run(dry_run: bool, workers: int, max_checks: int) -> int:
         print(f"fail: {PROBE_SIZE}-session probe took {probe_seconds:.0f}s; try later", file=sys.stderr)
         return 3
     seat_by_session_id.update(live_seats(token, fitting_sessions[PROBE_SIZE:], workers))
-    bookable_sessions = [session for session in fitting_sessions if seat_by_session_id.get(session["sessionId"]) in OPEN]
+    bookable_sessions = booking_order(
+        [session for session in fitting_sessions if seat_by_session_id.get(session["sessionId"]) in OPEN],
+        seat_by_session_id, config)
     print(f"open seats among fitting candidates: {len(bookable_sessions)} (checked in {time.time() - probe_started:.0f}s)")
 
     booked_codes = []
@@ -285,7 +314,9 @@ def run(dry_run: bool, workers: int, max_checks: int) -> int:
         # an earlier booking this run may have taken the window or a run of the same session
         if not fits(session, held_sessions, config) or mapper._base(session["abbreviation"]) in held_base_codes:
             continue
-        label = f"{session['_start']:%a %m-%d %H:%M} {session['venue']} {session['type']} {session['abbreviation']} | {session['title'][:60]}"
+        seat = seat_by_session_id.get(session["sessionId"])
+        label = (f"{session['_start']:%a %m-%d %H:%M} {session['venue']} {session['type']} {session['abbreviation']} "
+                 f"| {session['title'][:60]} | {reason(session, seat, config)}")
         if dry_run:
             print(f"would book: {label}")
             booking_succeeded, failure_codes = True, []

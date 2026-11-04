@@ -98,6 +98,33 @@ def test_plan_days_keeps_held_on_tie():
     assert got == ["B"]
 
 
+def test_scarcest_seat_books_first():
+    """veryLimited outranks available even when format priority says otherwise."""
+    avail_workshop = make_session_with_id("W", "w", "Venetian", "2026-11-30T10:00", "2026-11-30T12:00", "Workshop")
+    scarce_chalk = make_session_with_id("C", "c", "Venetian", "2026-11-30T10:00", "2026-11-30T11:00", "Chalk talk")
+    seats = {"w": "available", "c": "veryLimited"}
+    ordered = [s["sessionId"] for s in fill.booking_order([avail_workshop, scarce_chalk], seats, TEST_PLANNER_CONFIG)]
+    assert ordered == ["c", "w"]
+
+
+def test_booking_order_breaks_scarcity_ties_by_priority():
+    """Same seat band falls back to format priority."""
+    avail_chalk = make_session_with_id("C", "c", "Venetian", "2026-11-30T10:00", "2026-11-30T11:00", "Chalk talk")
+    avail_workshop = make_session_with_id("W", "w", "Venetian", "2026-11-30T10:00", "2026-11-30T12:00", "Workshop")
+    seats = {"c": "limited", "w": "limited"}
+    ordered = [s["sessionId"] for s in fill.booking_order([avail_chalk, avail_workshop], seats, TEST_PLANNER_CONFIG)]
+    assert ordered == ["w", "c"]
+
+
+def test_reason_names_seat_format_and_topics():
+    """Reason line carries the seat band, format, and topic match."""
+    config = dict(TEST_PLANNER_CONFIG, topics=[{"name": "agents", "pattern": "agent"}])
+    session = make_session_with_id("A", "a", "Venetian", "2026-12-01T15:00", "2026-12-01T16:00", "Workshop")
+    session["title"] = "agent session"
+    text = fill.reason(session, "veryLimited", config)
+    assert "veryLimited" in text and "Workshop" in text and "agents" in text
+
+
 def test_plan_days_one_run_per_base():
     """Repeat sessions (-R variants) only scheduled once per base code."""
     pool = [make_session_with_id("X1-R", "x1", "MGM Grand", "2026-11-30T10:00", "2026-11-30T11:00"),

@@ -6,9 +6,9 @@ item 10.
 
 ## now (cli-sized)
 
-1. scarcity-first booking with reasons on every pick. `fill` orders by
-   format today; order by live seat band instead and print why each pick
-   made it. visible daily.
+1. scarcity-first booking with reasons on every pick. shipped:
+   `fill` books veryLimited, then limited, then available, ties by
+   format and topic fit, and prints the reason on every booking line.
 2. repeat sittings as one target. name the talk, try its sittings in
    order, including sittings AWS adds late. one offering held at most once.
 3. arrive-by buffer plus in-venue legs. plan to 11 minutes before start
@@ -39,8 +39,10 @@ item 10.
     team split-coverage. needs the backend we do not have; the shape is
     specced in `docs/hallway-windows.md` (meetup slots are the solo version).
 11. own MCP server plus hosted demo. local catalog and schedule, gated
-    writes, no model. rust on graviton if functions are needed. webp
-    motion for bryanchasko.com/reinvent-26 follows stills, per brand.
+    writes, no model. stack order when extending: rust over python,
+    firecracker-functions over hosted services, MCP last. rust on
+    graviton if functions are needed. webp motion for
+    bryanchasko.com/reinvent-26 follows stills, per brand.
 
 ## declined
 
