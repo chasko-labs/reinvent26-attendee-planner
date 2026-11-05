@@ -99,6 +99,26 @@ def build_mosaic(venues: list, cache_dir: str):
     return mosaic, min_x, min_y
 
 
+def venue_labels(day_held):
+    """Session lines per venue, time-ordered: what each map dot means."""
+    labels: dict = {}
+    for item in sorted(day_held, key=lambda h: h["start"]):
+        labels.setdefault(item["venue"], []).append(
+            f"{item['start']} {item['code']}")
+    return labels
+
+
+SHORT_NAMES = {
+    "MGM Grand": "MGM Grand",
+    "Wynn/Encore": "Wynn",
+    "Caesars Palace": "Caesars Palace",
+    "Caesars Forum": "Caesars Forum",
+    "Venetian": "Venetian",
+    "Harrah's / LINQ": "LINQ",
+    "Flamingo": "Flamingo",
+}
+
+
 def draw_day(date: str, day_held: list, venues: list,
              mosaic, origin: tuple):
     """Composite: map crop left, session list right, attribution bottom."""
@@ -106,6 +126,8 @@ def draw_day(date: str, day_held: list, venues: list,
     title_font = ImageFont.truetype(FONT_PATH, 22)
     row_font = ImageFont.truetype(FONT_PATH, 16)
     small_font = ImageFont.truetype(FONT_PATH, 13)
+    label_font = ImageFont.truetype(FONT_PATH, 12)
+    labels = venue_labels(day_held)
     active = {h["venue"] for h in day_held}
     points = {}
     for venue in venues:
@@ -118,12 +140,15 @@ def draw_day(date: str, day_held: list, venues: list,
     top = max(0, min(ys) - pad)
     right = min(mosaic.width, max(xs) + pad)
     bottom = min(mosaic.height, max(ys) + pad)
-    center_x, center_y = (left + right) // 2, (top + bottom) // 2
-    half = 260
-    left = max(0, center_x - half)
-    top = max(0, center_y - half)
-    right = min(mosaic.width, left + half * 2)
-    bottom = min(mosaic.height, top + half * 2)
+    min_side = 520
+    if right - left < min_side:
+        center_x = (left + right) // 2
+        left = max(0, center_x - min_side // 2)
+        right = min(mosaic.width, left + min_side)
+    if bottom - top < min_side:
+        center_y = (top + bottom) // 2
+        top = max(0, center_y - min_side // 2)
+        bottom = min(mosaic.height, top + min_side)
     crop = mosaic.crop((left, top, right, bottom))
     panel_width = 330
     list_bottom = 60 + len(day_held) * 52 + 30
@@ -144,6 +169,20 @@ def draw_day(date: str, day_held: list, venues: list,
         if venue_name == "Venetian":
             draw.ellipse([dot_x - 11, dot_y - 11, dot_x + 11, dot_y + 11],
                          outline=AMBER, width=2)
+        if venue_name in labels:
+            lines = [SHORT_NAMES.get(venue_name, venue_name)]
+            lines += labels[venue_name]
+            anchor = "la"
+            text_x = dot_x + 12
+            if dot_x > crop.width * 0.62:
+                anchor = "ra"
+                text_x = dot_x - 12
+            text_y = dot_y - 8 * len(lines)
+            for line in lines:
+                draw.text((text_x, text_y), line, font=label_font,
+                          fill=(30, 41, 59), anchor=anchor,
+                          stroke_width=2, stroke_fill=(255, 255, 255))
+                text_y += 17
     row_y = 60
     for item in sorted(day_held, key=lambda h: h["start"]):
         draw.text((crop.width + 14, row_y),

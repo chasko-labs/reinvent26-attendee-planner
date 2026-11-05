@@ -66,3 +66,16 @@ def test_run_writes_five_pngs_with_cached_tiles(tmp_path, monkeypatch):
     assert daymaps.run(str(week_path), str(ed_path), str(out_dir),
                        str(cache)) == 0
     assert (out_dir / "day-2026-11-30.png").exists()
+
+
+def test_venue_labels_group_time_ordered_sessions():
+    held = [
+        {"code": "BBB222", "start": "15:00", "venue": "MGM Grand"},
+        {"code": "AAA111", "start": "08:30", "venue": "MGM Grand"},
+        {"code": "CCC333", "start": "12:00", "venue": "Wynn/Encore"},
+    ]
+    from reinvent26.daymaps import venue_labels
+    assert venue_labels(held) == {
+        "MGM Grand": ["08:30 AAA111", "15:00 BBB222"],
+        "Wynn/Encore": ["12:00 CCC333"],
+    }
