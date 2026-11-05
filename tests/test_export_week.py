@@ -1,0 +1,94 @@
+import sys
+import os
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "cli"))
+
+from reinvent26.export_week import build_week, session_entry, watcher_latest  # noqa: E402
+
+
+def _catalog():
+    return [
+        {"sessionId": "h1", "abbreviation": "STG363", "title": "Storage Talk",
+         "startTime": "2026-11-30T08:30:00", "endTime": "2026-11-30T09:30:00",
+         "venue": "MGM Grand", "room": "Room 306",
+         "speakers": [{"name": "Ann Lee"}], "level": "300"},
+        {"sessionId": "f1", "abbreviation": "NET335", "title": "Net Talk",
+         "startTime": "2026-11-30T16:00:00", "endTime": "2026-11-30T17:00:00",
+         "venue": "MGM Grand", "room": "Room 101",
+         "speakers": [{"name": "Bob Ray"}], "level": "200"},
+    ]
+
+
+def _schedule():
+    return {"schedule": {
+        "reserved": ["h1"],
+        "favorites": ["f1"],
+        "personalTime": [],
+    }}
+
+
+def test_session_entry_shapes_fields():
+    entry = session_entry(_catalog()[0])
+    assert entry["code"] == "STG363"
+    assert entry["date"] == "2026-11-30"
+    assert entry["start"] == "08:30"
+    assert entry["speakers"] == ["Ann Lee"]
+
+
+def test_build_week_splits_held_favorites_and_windows(tmp_path):
+    week = build_week(_schedule(), _catalog(), str(tmp_path), "2026-11-05")
+    assert [h["code"] for h in week["held"]] == ["STG363"]
+    assert [f["code"] for f in week["favorites"]] == ["NET335"]
+    assert week["windows"] == []
+    assert week["watcher"]["report"] is None
+
+
+def test_build_week_finds_gap_window():
+    catalog = _catalog() + [
+        {"sessionId": "h2", "abbreviation": "INV530", "title": "Second",
+         "startTime": "2026-11-30T11:30:00", "endTime": "2026-11-30T12:30:00",
+         "venue": "MGM Grand", "room": "Room 350",
+         "speakers": [], "level": "500"},
+    ]
+    schedule = {"schedule": {
+        "reserved": ["h1", "h2"], "favorites": [], "personalTime": [],
+    }}
+    week = build_week(schedule, catalog, "/nonexistent", "2026-11-05")
+    assert len(week["windows"]) == 1
+    assert week["windows"][0]["start"] == "09:30"
+    assert week["windows"][0]["end"] == "11:30"
+
+
+def test_watcher_latest_reads_added_codes(tmp_path):
+    report = ("# new sessions 2026-11-05 (reinvent2026)\n\n"
+              "## opportunities (open seat, fits your week)\n\n"
+              "- NET341 open seat\n\n"
+              "## all added sessions\n\n"
+              "- AIM999 new session\n- NET341 new session\n")
+    (tmp_path / "new-sessions-2026-11-05.md").write_text(report)
+    latest = watcher_latest(str(tmp_path))
+    assert latest["report"] == "2026-11-05"
+    assert latest["added"] == ["AIM999", "NET341"]
+    assert latest["opportunities"] == ["NET341"]
+
+
+def test_watcher_latest_empty_dir(tmp_path):
+    assert watcher_latest(str(tmp_path))["report"] is None
+
+
+def test_build_week_timeline_interleaves_open_windows():
+    catalog = [
+        {"sessionId": "h1", "abbreviation": "AAA111", "title": "First",
+         "startTime": "2026-11-30T08:30:00", "endTime": "2026-11-30T09:30:00",
+         "venue": "MGM Grand", "room": "R1", "speakers": [], "level": "300"},
+        {"sessionId": "h2", "abbreviation": "BBB222", "title": "Second",
+         "startTime": "2026-11-30T11:30:00", "endTime": "2026-11-30T12:30:00",
+         "venue": "MGM Grand", "room": "R2", "speakers": [], "level": "300"},
+    ]
+    schedule = {"schedule": {
+        "reserved": ["h1", "h2"], "favorites": [], "personalTime": [],
+    }}
+    week = build_week(schedule, catalog, "/nonexistent", "2026-11-05")
+    kinds = [(e["kind"], e["start"]) for e in week["timeline"]
+             if e.get("date") == "2026-11-30"]
+    assert kinds == [("held", "08:30"), ("open", "09:30"), ("held", "11:30")]
