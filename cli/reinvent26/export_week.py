@@ -156,12 +156,17 @@ def build_week(schedule: dict, catalog: list, watcher_dir: str,
                     "ord": 1, "place": later["venue"], "state": "rule",
                     "note": (f"{gap}-minute window near {later['venue']} — "
                              "grab-and-go or sit-down by the 20-minute rule")})
+        closing_meal = "dinner"
         dinner_note = "dinner TBD — find me here after the last session"
+        if last["end"] < "11:00":
+            closing_meal = "brunch"
+            dinner_note = ("back at the Venetian after the session: "
+                           "last hallway window (wheels-up TBD)")
         if date == "2026-12-03":
             dinner_note = ("dinner TBD, then re:Play — "
                            "the one after-hours event")
         timeline.append({
-            "kind": "meal", "meal": "dinner", "date": date,
+            "kind": "meal", "meal": closing_meal, "date": date,
             "start": last["end"], "end": "",
             "when": f"after {last['end']}", "ord": 1,
             "place": "TBD", "state": "tbd", "note": dinner_note})

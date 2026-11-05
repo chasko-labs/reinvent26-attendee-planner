@@ -137,10 +137,26 @@ def test_build_week_skips_lunch_outside_midday_window():
     assert [e for e in week["timeline"] if e.get("meal") == "lunch"] == []
 
 
+def test_build_week_early_close_is_brunch_not_dinner():
+    catalog = [
+        {"sessionId": "h1", "abbreviation": "AAA111", "title": "First",
+         "startTime": "2026-12-04T08:00:00", "endTime": "2026-12-04T10:00:00",
+         "venue": "Wynn/Encore", "room": "R1", "speakers": [], "level": "300"},
+    ]
+    schedule = {"schedule": {
+        "reserved": ["h1"], "favorites": [], "personalTime": [],
+    }}
+    week = build_week(schedule, catalog, "/nonexistent", "2026-11-05")
+    closing = [e for e in week["timeline"] if e["kind"] == "meal"
+               and e.get("meal") != "breakfast"]
+    assert [(c["meal"], c["when"]) for c in closing] == [("brunch", "after 10:00")]
+    assert "re:Play" not in closing[0]["note"]
+
+
 def test_build_week_thursday_dinner_names_replay():
     catalog = [
         {"sessionId": "h1", "abbreviation": "AAA111", "title": "First",
-         "startTime": "2026-12-03T08:00:00", "endTime": "2026-12-03T09:00:00",
+         "startTime": "2026-12-03T08:00:00", "endTime": "2026-12-03T17:30:00",
          "venue": "Wynn/Encore", "room": "R1", "speakers": [], "level": "300"},
     ]
     schedule = {"schedule": {
