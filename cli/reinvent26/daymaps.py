@@ -201,7 +201,11 @@ def draw_day(date: str, day_held: list, venues: list,
                          outline=AMBER, width=2)
         if venue_name in labels:
             lines = [SHORT_NAMES.get(venue_name, venue_name)]
-            lines += labels[venue_name]
+            if len(labels) == 1 and len(labels[venue_name]) > 2:
+                lines += [f"{len(labels[venue_name])} sessions, "
+                          "numbered at right"]
+            else:
+                lines += labels[venue_name]
             anchor = "la"
             text_x = dot_x + 12
             if dot_x > crop.width * 0.62:

@@ -93,6 +93,23 @@ def test_slugify_venue_names():
     assert venue_slug(venues, "Wynn/Encore") == "wynn-encore"
 
 
+def test_single_venue_dot_label_collapses_to_count():
+    from reinvent26 import daymaps
+    from PIL import Image
+    mosaic = Image.new("RGB", (3 * 256, 3 * 256), (20, 20, 30))
+    venues = [{"name": "MGM Grand", "lat": 36.1028, "lng": -115.1694}]
+    tile = daymaps.latlng_to_tile(36.1028, -115.1694, 15)
+    origin = (tile[0] - 1, tile[1] - 1)
+    held = [{"code": f"AAA11{i}", "title": "T", "date": "2026-11-30",
+             "start": f"08:3{i}", "end": "09:30", "venue": "MGM Grand"}
+            for i in range(3)]
+    image = daymaps.draw_day("2026-11-30", held, venues, mosaic, origin)
+    assert image.mode == "RGB"
+    assert daymaps.venue_labels(held) == {
+        "MGM Grand": ["1 08:30 AAA110", "2 08:31 AAA111", "3 08:32 AAA112"],
+    }
+
+
 def test_venue_labels_match_side_row_order_across_days():
     from reinvent26.daymaps import venue_labels
     held = [
