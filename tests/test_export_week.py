@@ -47,7 +47,7 @@ def test_session_entry_marks_reservable():
 
 def test_build_week_splits_held_favorites_and_windows(tmp_path):
     week = build_week(_schedule(), _catalog(), str(tmp_path), "2026-11-05")
-    assert [h["code"] for h in week["held"]] == ["STG363"]
+    assert [held_entry["code"] for held_entry in week["held"]] == ["STG363"]
     assert [f["code"] for f in week["favorites"]] == ["NET335"]
     assert week["windows"] == []
     assert week["watcher"]["report"] is None

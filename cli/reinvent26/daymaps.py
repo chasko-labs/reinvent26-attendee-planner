@@ -88,37 +88,45 @@ def fetch_tile(z: int, x: int, y: int, cache_dir: str):
 def build_mosaic(venues: list, cache_dir: str):
     """Fetch the smallest tile grid covering every venue (plus margin)."""
     from PIL import Image
-    corners = [latlng_to_tile(v["lat"], v["lng"], ZOOM) for v in venues]
-    min_x = min(c[0] for c in corners) - 1
-    max_x = max(c[0] for c in corners) + 1
-    min_y = min(c[1] for c in corners) - 1
-    max_y = max(c[1] for c in corners) + 1
-    mosaic = Image.new("RGB",
-                       ((max_x - min_x + 1) * TILE_SIZE,
-                        (max_y - min_y + 1) * TILE_SIZE))
-    for x in range(min_x, max_x + 1):
-        for y in range(min_y, max_y + 1):
-            tile = fetch_tile(ZOOM, x, y, cache_dir)
-            mosaic.paste(tile, ((x - min_x) * TILE_SIZE,
-                                (y - min_y) * TILE_SIZE))
-    return mosaic, min_x, min_y
+    corners = [latlng_to_tile(venue["lat"], venue["lng"], ZOOM)
+               for venue in venues]
+    min_tile_x = min(corner[0] for corner in corners) - 1
+    max_tile_x = max(corner[0] for corner in corners) + 1
+    min_tile_y = min(corner[1] for corner in corners) - 1
+    max_tile_y = max(corner[1] for corner in corners) + 1
+    mosaic = Image.new(
+        "RGB",
+        ((max_tile_x - min_tile_x + 1) * TILE_SIZE,
+         (max_tile_y - min_tile_y + 1) * TILE_SIZE))
+    for tile_x in range(min_tile_x, max_tile_x + 1):
+        for tile_y in range(min_tile_y, max_tile_y + 1):
+            tile = fetch_tile(ZOOM, tile_x, tile_y, cache_dir)
+            mosaic.paste(tile, ((tile_x - min_tile_x) * TILE_SIZE,
+                                (tile_y - min_tile_y) * TILE_SIZE))
+    return mosaic, min_tile_x, min_tile_y
 
 
 def ordered_numbers(day_held):
     """1-based numbers in time order, shared by dots and side rows."""
-    ordered = sorted(day_held,
-                     key=lambda h: (h.get("date", ""), h["start"]))
-    return {id(item): number for number, item in enumerate(ordered, 1)}
+    ordered = sorted(
+        day_held,
+        key=lambda held_session: (held_session.get("date", ""),
+                                  held_session["start"]))
+    return {id(held_session): number
+            for number, held_session in enumerate(ordered, 1)}
 
 
 def venue_labels(day_held):
     """Session lines per venue, date/time-ordered to match the side rows."""
     numbers = ordered_numbers(day_held)
     labels: dict = {}
-    for item in sorted(day_held,
-                       key=lambda h: (h.get("date", ""), h["start"])):
-        labels.setdefault(item["venue"], []).append(
-            f"{numbers[id(item)]} {item['start']} {item['code']}")
+    for held_session in sorted(
+            day_held,
+            key=lambda session_row: (session_row.get("date", ""),
+                                     session_row["start"])):
+        labels.setdefault(held_session["venue"], []).append(
+            f"{numbers[id(held_session)]} "
+            f"{held_session['start']} {held_session['code']}")
     return labels
 
 
@@ -147,19 +155,21 @@ def draw_day(date: str, day_held: list, venues: list,
     small_font = ImageFont.truetype(FONT_PATH, 13)
     label_font = ImageFont.truetype(FONT_PATH, 12)
     labels = venue_labels(day_held)
-    active = {h["venue"] for h in day_held}
+    active = {held_session["venue"] for held_session in day_held}
     multi_day = len({h.get("date", "") for h in day_held}) > 1
     points = {}
     for venue in venues:
         points[venue["name"]] = latlng_to_pixel(
             venue["lat"], venue["lng"], ZOOM, *origin)
-    xs = [points[v][0] for v in active if v in points]
-    ys = [points[v][1] for v in active if v in points]
+    active_x = [points[venue_name][0] for venue_name in active
+                if venue_name in points]
+    active_y = [points[venue_name][1] for venue_name in active
+                if venue_name in points]
     pad = 90
-    left = max(0, min(xs) - pad)
-    top = max(0, min(ys) - pad)
-    right = min(mosaic.width, max(xs) + pad)
-    bottom = min(mosaic.height, max(ys) + pad)
+    left = max(0, min(active_x) - pad)
+    top = max(0, min(active_y) - pad)
+    right = min(mosaic.width, max(active_x) + pad)
+    bottom = min(mosaic.height, max(active_y) + pad)
     min_side = 520
     if right - left < min_side:
         center_x = (left + right) // 2
@@ -179,10 +189,10 @@ def draw_day(date: str, day_held: list, venues: list,
     draw = ImageDraw.Draw(canvas)
     draw.text((12, 2), title or DAY_LABELS.get(date, date),
               font=title_font, fill=AMBER)
-    for venue_name, (px, py) in points.items():
-        if not (left <= px <= right and top <= py <= bottom):
+    for venue_name, (pixel_x, pixel_y) in points.items():
+        if not (left <= pixel_x <= right and top <= pixel_y <= bottom):
             continue
-        dot_x, dot_y = px - left, py - top + 26
+        dot_x, dot_y = pixel_x - left, pixel_y - top + 26
         color = AMBER if venue_name in active else GREY
         draw.ellipse([dot_x - 7, dot_y - 7, dot_x + 7, dot_y + 7],
                      fill=color, outline=(10, 10, 14), width=2)
@@ -197,34 +207,38 @@ def draw_day(date: str, day_held: list, venues: list,
             if dot_x > crop.width * 0.62:
                 anchor = "ra"
                 text_x = dot_x - 12
-            placed = []
-            text_y = dot_y - 10 * len(lines)
-            for line in lines:
-                placed.append((text_x, text_y, line))
-                text_y += 20
-            boxes = [draw.textbbox((x, y), line, font=label_font,
-                                   anchor=anchor)
-                     for x, y, line in placed]
-            backing = (min(b[0] for b in boxes) - 4,
-                       min(b[1] for b in boxes) - 3,
-                       max(b[2] for b in boxes) + 4,
-                       max(b[3] for b in boxes) + 3)
+            placed_labels = []
+            label_y = dot_y - 10 * len(lines)
+            for label_line in lines:
+                placed_labels.append((text_x, label_y, label_line))
+                label_y += 20
+            boxes = [draw.textbbox((box_x, box_y), box_text,
+                                   font=label_font, anchor=anchor)
+                     for box_x, box_y, box_text in placed_labels]
+            backing = (min(box[0] for box in boxes) - 4,
+                       min(box[1] for box in boxes) - 3,
+                       max(box[2] for box in boxes) + 4,
+                       max(box[3] for box in boxes) + 3)
             draw.rectangle(backing, fill=PANEL)
-            for (x, y, line) in placed:
-                draw.text((x, y), line, font=label_font,
+            for (box_x, box_y, box_text) in placed_labels:
+                draw.text((box_x, box_y), box_text, font=label_font,
                           fill=OFFWHITE, anchor=anchor)
     row_y = 60
     numbers = ordered_numbers(day_held)
-    for item in sorted(day_held,
-                       key=lambda h: (h.get("date", ""), h["start"])):
-        number = numbers[id(item)]
-        row_title = item.get("title") or ""
+    for held_session in sorted(
+            day_held,
+            key=lambda session_row: (session_row.get("date", ""),
+                                     session_row["start"])):
+        session_number = numbers[id(held_session)]
+        row_title = held_session.get("title") or ""
         if len(row_title) > 40:
             row_title = row_title[:37] + "..."
         draw.text((crop.width + 14, row_y),
-                  f"{number}. {_row_when(item, multi_day)} {item['code']}",
+                  f"{session_number}. "
+                  f"{_row_when(held_session, multi_day)} "
+                  f"{held_session['code']}",
                   font=row_font, fill=OFFWHITE)
-        draw.text((crop.width + 14, row_y + 22), item["venue"],
+        draw.text((crop.width + 14, row_y + 22), held_session["venue"],
                   font=small_font, fill=GREY)
         draw.text((crop.width + 14, row_y + 38), row_title,
                   font=small_font, fill=GREY)
@@ -235,11 +249,11 @@ def draw_day(date: str, day_held: list, venues: list,
     return canvas
 
 
-def _row_when(item: dict, multi_day: bool) -> str:
+def _row_when(held_session: dict, multi_day: bool) -> str:
     """Side-row time: with MM-DD prefix when rows span several days."""
-    when = item["start"]
-    if multi_day and item.get("date"):
-        when = f"{item['date'][5:]} {item['start']}"
+    when = held_session["start"]
+    if multi_day and held_session.get("date"):
+        when = f"{held_session['date'][5:]} {held_session['start']}"
     return when
 
 
@@ -254,12 +268,15 @@ def venue_slug(venues: list, name: str) -> str:
 def run_venues(week: dict, venues: list, mosaic, origin: tuple,
                out_dir: str) -> int:
     """One close-up map per venue holding sessions across the week."""
-    names = sorted({h.get("venue", "") for h in week.get("held", [])
-                    if h.get("venue")})
+    names = sorted({held_session.get("venue", "")
+                    for held_session in week.get("held", [])
+                    if held_session.get("venue")})
     for name in names:
         at_venue = sorted(
-            (h for h in week["held"] if h.get("venue") == name),
-            key=lambda h: (h.get("date", ""), h["start"]))
+            (held_session for held_session in week["held"]
+             if held_session.get("venue") == name),
+            key=lambda venue_session: (venue_session.get("date", ""),
+                                        venue_session["start"]))
         image = draw_day(name, at_venue, venues, mosaic, origin,
                          title=name)
         out_path = os.path.join(out_dir, f"venue-{venue_slug(venues, name)}.png")
@@ -275,16 +292,16 @@ def draw_transit(stops: list, mosaic, origin: tuple):
     row_font = ImageFont.truetype(FONT_PATH, 16)
     small_font = ImageFont.truetype(FONT_PATH, 13)
     label_font = ImageFont.truetype(FONT_PATH, 12)
-    ordered = sorted(stops, key=lambda s: s["lat"])
-    points = [latlng_to_pixel(s["lat"], s["lng"], ZOOM, *origin)
-              for s in ordered]
-    xs = [p[0] for p in points]
-    ys = [p[1] for p in points]
+    ordered = sorted(stops, key=lambda station: station["lat"])
+    points = [latlng_to_pixel(station["lat"], station["lng"], ZOOM, *origin)
+              for station in ordered]
+    points_x = [point[0] for point in points]
+    points_y = [point[1] for point in points]
     pad = 110
-    left = max(0, min(xs) - pad)
-    top = max(0, min(ys) - pad)
-    right = min(mosaic.width, max(xs) + pad)
-    bottom = min(mosaic.height, max(ys) + pad)
+    left = max(0, min(points_x) - pad)
+    top = max(0, min(points_y) - pad)
+    right = min(mosaic.width, max(points_x) + pad)
+    bottom = min(mosaic.height, max(points_y) + pad)
     crop = mosaic.crop((left, top, right, bottom))
     panel_width = 330
     list_bottom = 60 + len(ordered) * 40 + 30
@@ -294,9 +311,11 @@ def draw_transit(stops: list, mosaic, origin: tuple):
     canvas.paste(crop, (0, 26))
     draw = ImageDraw.Draw(canvas)
     draw.text((12, 2), "LAS VEGAS MONORAIL", font=title_font, fill=AMBER)
-    shifted = [(px - left, py - top + 26) for px, py in points]
+    shifted = [(point_x - left, point_y - top + 26)
+               for point_x, point_y in points]
     row_y = 60
-    for number, (stop, (dot_x, dot_y)) in enumerate(zip(ordered, shifted), 1):
+    for number, (stop, (dot_x, dot_y)) in enumerate(zip(ordered, shifted),
+                                                    1):
         draw.ellipse([dot_x - 7, dot_y - 7, dot_x + 7, dot_y + 7],
                      fill=AMBER, outline=(10, 10, 14), width=2)
         draw.text((dot_x + 12, dot_y - 10), str(number),
@@ -331,9 +350,12 @@ def run(week_path: str, editorial_path: str, out_dir: str,
     venues = editorial["map_venues"]
     os.makedirs(out_dir, exist_ok=True)
     mosaic, origin_x, origin_y = build_mosaic(venues, cache_dir)
-    dates = sorted({h.get("date", "") for h in week["held"] if h.get("date")})
+    dates = sorted({held_session.get("date", "")
+                    for held_session in week["held"]
+                    if held_session.get("date")})
     for date in dates:
-        day_held = [h for h in week["held"] if h.get("date") == date]
+        day_held = [held_session for held_session in week["held"]
+                    if held_session.get("date") == date]
         image = draw_day(date, day_held, venues, mosaic, (origin_x, origin_y))
         out_path = os.path.join(out_dir, f"day-{date}.png")
         image.save(out_path)

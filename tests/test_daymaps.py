@@ -80,7 +80,7 @@ def test_venue_labels_group_time_ordered_sessions():
         "Wynn/Encore": ["2 12:00 CCC333"],
     }
     numbers = ordered_numbers(
-        sorted(held, key=lambda h: h["start"]))
+        sorted(held, key=lambda held_session: held_session["start"]))
     assert sorted(numbers.values()) == [1, 2, 3]
 
 

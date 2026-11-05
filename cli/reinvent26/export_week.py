@@ -24,30 +24,35 @@ EVENT_ID = "reinvent2026"
 CODE_RE = re.compile(r"\b([A-Z]{2,4}\d{3,4}(?:-R\d?|-S)?)\b")
 
 
-def session_entry(item: dict) -> dict:
+def session_entry(catalog_session: dict) -> dict:
     """Catalog session narrowed to the fields the week page renders."""
-    speakers = item.get("speakers") or []
-    start = str(item.get("startTime") or "")
+    speakers = catalog_session.get("speakers") or []
+    start = str(catalog_session.get("startTime") or "")
     return {
-        "code": item.get("abbreviation") or item.get("code") or item.get("sessionId"),
-        "title": item.get("title") or "",
+        "code": (catalog_session.get("abbreviation")
+                 or catalog_session.get("code")
+                 or catalog_session.get("sessionId")),
+        "title": catalog_session.get("title") or "",
         "date": start[:10],
         "start": start[11:16],
-        "end": str(item.get("endTime") or "")[11:16],
-        "venue": item.get("venue") or "",
-        "room": item.get("room") or "",
-        "speakers": [s.get("name", "") for s in speakers if isinstance(s, dict)],
-        "level": item.get("level") or "",
-        "seat": item.get("seatAvailability") or item.get("seat_availability") or "",
-        "reservable": bool(item.get("isReservable")),
+        "end": str(catalog_session.get("endTime") or "")[11:16],
+        "venue": catalog_session.get("venue") or "",
+        "room": catalog_session.get("room") or "",
+        "speakers": [speaker.get("name", "") for speaker in speakers
+                     if isinstance(speaker, dict)],
+        "level": catalog_session.get("level") or "",
+        "seat": (catalog_session.get("seatAvailability")
+                 or catalog_session.get("seat_availability") or ""),
+        "reservable": bool(catalog_session.get("isReservable")),
     }
 
 
 def watcher_latest(watcher_dir: str) -> dict:
     """New-session codes from the latest nightly watcher report, if any."""
     try:
-        names = sorted(f for f in os.listdir(watcher_dir)
-                       if f.startswith("new-sessions-") and f.endswith(".md"))
+        names = sorted(report_file for report_file in os.listdir(watcher_dir)
+                       if report_file.startswith("new-sessions-")
+                       and report_file.endswith(".md"))
     except OSError:
         return {"report": None, "added": [], "opportunities": []}
     if not names:
@@ -72,10 +77,14 @@ def _minus_minutes(clock: str, minutes: int) -> str:
     return f"{total // 60:02d}:{total % 60:02d}"
 
 
+def _clock_to_minutes(clock: str) -> int:
+    """HH:MM clock as minutes since midnight."""
+    return int(clock[:2]) * 60 + int(clock[3:5])
+
+
 def _gap_minutes(start: str, end: str) -> int:
     """Minutes between two HH:MM clocks on the same day."""
-    to_min = lambda clock: int(clock[:2]) * 60 + int(clock[3:5])
-    return to_min(end) - to_min(start)
+    return _clock_to_minutes(end) - _clock_to_minutes(start)
 
 
 def _overlaps_lunch(start: str, end: str) -> bool:
@@ -86,96 +95,130 @@ def _overlaps_lunch(start: str, end: str) -> bool:
 def build_week(schedule: dict, catalog: list, watcher_dir: str,
                generated_at: str) -> dict:
     """Pure build: schedule plus catalog rows in, week dict out."""
-    by_id = {s.get("sessionId"): s for s in catalog if isinstance(s, dict)}
-    items = cli._confirmed_items(schedule, catalog)
-    for item in items:
-        full = by_id.get(item.get("sessionId"), {})
-        for key, value in full.items():
-            if key not in item or not item.get(key):
-                item[key] = value
-    node = schedule.get("schedule", {}) if isinstance(schedule, dict) else {}
+    catalog_by_session_id = {
+        catalog_row.get("sessionId"): catalog_row
+        for catalog_row in catalog if isinstance(catalog_row, dict)
+    }
+    confirmed_items = cli._confirmed_items(schedule, catalog)
+    for schedule_item in confirmed_items:
+        catalog_details = catalog_by_session_id.get(
+            schedule_item.get("sessionId"), {})
+        for field_name, field_value in catalog_details.items():
+            if field_name not in schedule_item or not schedule_item.get(field_name):
+                schedule_item[field_name] = field_value
+    schedule_node = (schedule.get("schedule", {})
+                     if isinstance(schedule, dict) else {})
     reserved_ids = set(
-        r if isinstance(r, str) else r.get("sessionId")
-        for r in node.get("reserved", [])
+        reservation if isinstance(reservation, str)
+        else reservation.get("sessionId")
+        for reservation in schedule_node.get("reserved", [])
     )
-    held = [s for s in items
-            if s.get("sessionId") in reserved_ids or s.get("code") in reserved_ids]
-    favorites = [s for s in items
-                 if s.get("sessionId") not in reserved_ids
-                 and s.get("code") not in reserved_ids
-                 and (s.get("startTime") or s.get("sessionTime"))]
+    held = [schedule_item for schedule_item in confirmed_items
+            if schedule_item.get("sessionId") in reserved_ids
+            or schedule_item.get("code") in reserved_ids]
+    favorites = [schedule_item for schedule_item in confirmed_items
+                 if schedule_item.get("sessionId") not in reserved_ids
+                 and schedule_item.get("code") not in reserved_ids
+                 and (schedule_item.get("startTime")
+                      or schedule_item.get("sessionTime"))]
     windows = [
-        {"date": str(day), "start": start.strftime("%H:%M"),
-         "end": end.strftime("%H:%M"), "minutes": minutes, "part": part}
-        for day, start, end, minutes, part in findme.day_gaps(held)
+        {"date": str(gap_day), "start": gap_start.strftime("%H:%M"),
+         "end": gap_end.strftime("%H:%M"),
+         "minutes": gap_minutes, "part": gap_part}
+        for gap_day, gap_start, gap_end, gap_minutes, gap_part
+        in findme.day_gaps(held)
     ]
-    held_entries = [session_entry(s) for s in held if s.get("startTime")]
-    favorites_entries = [session_entry(s) for s in favorites if s.get("startTime")]
-    timeline = ([dict(entry, kind="held") for entry in held_entries]
-                + [dict(window, kind="open") for window in windows])
-    timeline.sort(key=lambda e: (e.get("date", ""), e.get("start", "")))
-    config = mapper._load_config()
+    held_entries = [session_entry(held_session) for held_session in held
+                    if held_session.get("startTime")]
+    favorites_entries = [session_entry(favorite_session)
+                         for favorite_session in favorites
+                         if favorite_session.get("startTime")]
+    timeline = ([dict(held_entry, kind="held") for held_entry in held_entries]
+                + [dict(open_window, kind="open")
+                   for open_window in windows])
+    timeline.sort(key=lambda timeline_entry: (timeline_entry.get("date", ""),
+                                              timeline_entry.get("start", "")))
+    venue_config = mapper._load_config()
     legs = []
-    by_day: dict = {}
-    for entry in held_entries:
-        by_day.setdefault(entry["date"], []).append(entry)
-    for date, day_held in by_day.items():
-        ordered = sorted(day_held, key=lambda e: e["start"])
-        for first, second in zip(ordered, ordered[1:]):
-            minutes = mapper._gap_needed(
-                {"venue": first["venue"]}, {"venue": second["venue"]}, config)
-            if first["venue"] == second["venue"]:
-                mode, label = "walk", "in-venue walk, about 10 minutes"
+    held_by_day: dict = {}
+    for held_entry in held_entries:
+        held_by_day.setdefault(held_entry["date"], []).append(held_entry)
+    for day_date, day_held in held_by_day.items():
+        ordered_held = sorted(day_held,
+                              key=lambda held_entry: held_entry["start"])
+        for first_session, second_session in zip(ordered_held,
+                                                 ordered_held[1:]):
+            transit_minutes = mapper._gap_needed(
+                {"venue": first_session["venue"]},
+                {"venue": second_session["venue"]}, venue_config)
+            if first_session["venue"] == second_session["venue"]:
+                transit_mode = "walk"
+                transit_label = "in-venue walk, about 10 minutes"
             else:
-                mode = "shuttle"
-                label = f"shuttle, about {minutes} minutes (estimate)"
-            legs.append({"kind": "leg", "date": date,
-                         "start": first["end"], "end": first["end"],
+                transit_mode = "shuttle"
+                transit_label = (f"shuttle, about {transit_minutes} "
+                                 "minutes (estimate)")
+            legs.append({"kind": "leg", "date": day_date,
+                         "start": first_session["end"],
+                         "end": first_session["end"],
                          "ord": 1,
-                         "from_venue": first["venue"],
-                         "to_venue": second["venue"],
-                         "mode": mode, "label": label})
+                         "from_venue": first_session["venue"],
+                         "to_venue": second_session["venue"],
+                         "mode": transit_mode, "label": transit_label})
     timeline = timeline + legs
-    for date, day_held in by_day.items():
-        ordered = sorted(day_held, key=lambda e: e["start"])
-        first, last = ordered[0], ordered[-1]
+    for day_date, day_held in held_by_day.items():
+        ordered_held = sorted(day_held,
+                              key=lambda held_entry: held_entry["start"])
+        first_session_of_day = ordered_held[0]
+        last_session_of_day = ordered_held[-1]
         timeline.append({
-            "kind": "meal", "meal": "breakfast", "date": date,
-            "start": "", "end": _minus_minutes(first["start"], 10),
-            "when": f"morning, before {first['start']}", "ord": 1,
-            "place": first["venue"], "state": "rule",
-            "note": (f"breakfast near {first['venue']} — grab-and-go or "
-                     "sit-down, decided on site by the 20-minute gap")})
-        for earlier, later in zip(ordered, ordered[1:]):
-            gap = _gap_minutes(earlier["end"], later["start"])
-            if gap >= 20 and _overlaps_lunch(earlier["end"],
-                                             later["start"]):
+            "kind": "meal", "meal": "breakfast", "date": day_date,
+            "start": "",
+            "end": _minus_minutes(first_session_of_day["start"], 10),
+            "when": f"morning, before {first_session_of_day['start']}",
+            "ord": 1,
+            "place": first_session_of_day["venue"], "state": "rule",
+            "note": (f"breakfast near {first_session_of_day['venue']} — "
+                     "grab-and-go or sit-down, decided on site "
+                     "by the 20-minute gap")})
+        for earlier_session, later_session in zip(ordered_held,
+                                                  ordered_held[1:]):
+            lunch_gap_minutes = _gap_minutes(earlier_session["end"],
+                                              later_session["start"])
+            if lunch_gap_minutes >= 20 and _overlaps_lunch(
+                    earlier_session["end"], later_session["start"]):
                 timeline.append({
-                    "kind": "meal", "meal": "lunch", "date": date,
-                    "start": earlier["end"], "end": later["start"],
-                    "when": f"{earlier['end']}–{later['start']}",
-                    "ord": 1, "place": later["venue"], "state": "rule",
-                    "note": (f"{gap}-minute window near {later['venue']} — "
-                             "grab-and-go or sit-down by the 20-minute rule")})
+                    "kind": "meal", "meal": "lunch", "date": day_date,
+                    "start": earlier_session["end"],
+                    "end": later_session["start"],
+                    "when": (f"{earlier_session['end']}–"
+                             f"{later_session['start']}"),
+                    "ord": 1, "place": later_session["venue"],
+                    "state": "rule",
+                    "note": (f"{lunch_gap_minutes}-minute window near "
+                             f"{later_session['venue']} — grab-and-go or "
+                             "sit-down by the 20-minute rule")})
         closing_meal = "dinner"
         dinner_note = "dinner TBD — find me here after the last session"
-        if last["end"] < "11:00":
+        if last_session_of_day["end"] < "11:00":
             closing_meal = "brunch"
             dinner_note = ("back at the Venetian after the session: "
                            "last hallway window (wheels-up TBD)")
-        if date == "2026-12-03":
+        if day_date == "2026-12-03":
             dinner_note = ("dinner TBD, then re:Play — "
                            "the one after-hours event")
         timeline.append({
-            "kind": "meal", "meal": closing_meal, "date": date,
-            "start": last["end"], "end": "",
-            "when": f"after {last['end']}", "ord": 1,
+            "kind": "meal", "meal": closing_meal, "date": day_date,
+            "start": last_session_of_day["end"], "end": "",
+            "when": f"after {last_session_of_day['end']}", "ord": 1,
             "place": "TBD", "state": "tbd", "note": dinner_note})
-    for entry in timeline:
-        entry.setdefault("ord", 0 if entry["kind"] == "held" else 2)
-    timeline.sort(key=lambda e: (e.get("date", ""),
-                                 e.get("start") or "00:00",
-                                 e.get("ord", 9)))
+    for timeline_entry in timeline:
+        timeline_entry.setdefault(
+            "ord", 0 if timeline_entry["kind"] == "held" else 2)
+    timeline.sort(key=lambda timeline_entry: (timeline_entry.get("date", ""),
+                                              timeline_entry.get("start")
+                                              or "00:00",
+                                              timeline_entry.get("ord", 9)))
     return {
         "generated_at": generated_at,
         "event_id": EVENT_ID,
