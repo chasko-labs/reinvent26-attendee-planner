@@ -65,6 +65,23 @@ def watcher_latest(watcher_dir: str) -> dict:
     }
 
 
+def _minus_minutes(clock: str, minutes: int) -> str:
+    """Shift a HH:MM clock earlier; session times never cross midnight."""
+    total = int(clock[:2]) * 60 + int(clock[3:5]) - minutes
+    return f"{total // 60:02d}:{total % 60:02d}"
+
+
+def _gap_minutes(start: str, end: str) -> int:
+    """Minutes between two HH:MM clocks on the same day."""
+    to_min = lambda clock: int(clock[:2]) * 60 + int(clock[3:5])
+    return to_min(end) - to_min(start)
+
+
+def _overlaps_lunch(start: str, end: str) -> bool:
+    """True when a gap touches the 11:00-14:00 lunch window."""
+    return start < "14:00" and end > "11:00"
+
+
 def build_week(schedule: dict, catalog: list, watcher_dir: str,
                generated_at: str) -> dict:
     """Pure build: schedule plus catalog rows in, week dict out."""
@@ -118,9 +135,40 @@ def build_week(schedule: dict, catalog: list, watcher_dir: str,
                          "to_venue": second["venue"],
                          "mode": mode, "label": label})
     timeline = timeline + legs
+    for date, day_held in by_day.items():
+        ordered = sorted(day_held, key=lambda e: e["start"])
+        first, last = ordered[0], ordered[-1]
+        timeline.append({
+            "kind": "meal", "meal": "breakfast", "date": date,
+            "start": "", "end": _minus_minutes(first["start"], 10),
+            "when": f"morning, before {first['start']}", "ord": 1,
+            "place": first["venue"], "state": "rule",
+            "note": (f"breakfast near {first['venue']} — grab-and-go or "
+                     "sit-down, decided on site by the 20-minute gap")})
+        for earlier, later in zip(ordered, ordered[1:]):
+            gap = _gap_minutes(earlier["end"], later["start"])
+            if gap >= 20 and _overlaps_lunch(earlier["end"],
+                                             later["start"]):
+                timeline.append({
+                    "kind": "meal", "meal": "lunch", "date": date,
+                    "start": earlier["end"], "end": later["start"],
+                    "when": f"{earlier['end']}–{later['start']}",
+                    "ord": 1, "place": later["venue"], "state": "rule",
+                    "note": (f"{gap}-minute window near {later['venue']} — "
+                             "grab-and-go or sit-down by the 20-minute rule")})
+        dinner_note = "dinner TBD — find me here after the last session"
+        if date == "2026-12-03":
+            dinner_note = ("dinner TBD, then re:Play — "
+                           "the one after-hours event")
+        timeline.append({
+            "kind": "meal", "meal": "dinner", "date": date,
+            "start": last["end"], "end": "",
+            "when": f"after {last['end']}", "ord": 1,
+            "place": "TBD", "state": "tbd", "note": dinner_note})
     for entry in timeline:
         entry.setdefault("ord", 0 if entry["kind"] == "held" else 2)
-    timeline.sort(key=lambda e: (e.get("date", ""), e.get("start", ""),
+    timeline.sort(key=lambda e: (e.get("date", ""),
+                                 e.get("start") or "00:00",
                                  e.get("ord", 9)))
     return {
         "generated_at": generated_at,

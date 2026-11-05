@@ -99,12 +99,19 @@ def build_mosaic(venues: list, cache_dir: str):
     return mosaic, min_x, min_y
 
 
+def ordered_numbers(day_held):
+    """1-based numbers in time order, shared by dots and side rows."""
+    ordered = sorted(day_held, key=lambda h: h["start"])
+    return {id(item): number for number, item in enumerate(ordered, 1)}
+
+
 def venue_labels(day_held):
     """Session lines per venue, time-ordered: what each map dot means."""
+    numbers = ordered_numbers(day_held)
     labels: dict = {}
     for item in sorted(day_held, key=lambda h: h["start"]):
         labels.setdefault(item["venue"], []).append(
-            f"{item['start']} {item['code']}")
+            f"{numbers[id(item)]} {item['start']} {item['code']}")
     return labels
 
 
@@ -151,7 +158,7 @@ def draw_day(date: str, day_held: list, venues: list,
         bottom = min(mosaic.height, top + min_side)
     crop = mosaic.crop((left, top, right, bottom))
     panel_width = 330
-    list_bottom = 60 + len(day_held) * 52 + 30
+    list_bottom = 60 + len(day_held) * 62 + 30
     canvas_height = max(crop.height + 26, list_bottom)
     canvas = Image.new("RGB", (crop.width + panel_width, canvas_height),
                        PANEL)
@@ -177,20 +184,37 @@ def draw_day(date: str, day_held: list, venues: list,
             if dot_x > crop.width * 0.62:
                 anchor = "ra"
                 text_x = dot_x - 12
-            text_y = dot_y - 8 * len(lines)
+            placed = []
+            text_y = dot_y - 10 * len(lines)
             for line in lines:
-                draw.text((text_x, text_y), line, font=label_font,
-                          fill=(30, 41, 59), anchor=anchor,
-                          stroke_width=2, stroke_fill=(255, 255, 255))
-                text_y += 17
+                placed.append((text_x, text_y, line))
+                text_y += 20
+            boxes = [draw.textbbox((x, y), line, font=label_font,
+                                   anchor=anchor)
+                     for x, y, line in placed]
+            backing = (min(b[0] for b in boxes) - 4,
+                       min(b[1] for b in boxes) - 3,
+                       max(b[2] for b in boxes) + 4,
+                       max(b[3] for b in boxes) + 3)
+            draw.rectangle(backing, fill=PANEL)
+            for (x, y, line) in placed:
+                draw.text((x, y), line, font=label_font,
+                          fill=OFFWHITE, anchor=anchor)
     row_y = 60
+    numbers = ordered_numbers(day_held)
     for item in sorted(day_held, key=lambda h: h["start"]):
+        number = numbers[id(item)]
+        title = item.get("title") or ""
+        if len(title) > 40:
+            title = title[:37] + "..."
         draw.text((crop.width + 14, row_y),
-                  f"{item['start']} {item['code']}", font=row_font,
-                  fill=OFFWHITE)
+                  f"{number}. {item['start']} {item['code']}",
+                  font=row_font, fill=OFFWHITE)
         draw.text((crop.width + 14, row_y + 22), item["venue"],
                   font=small_font, fill=GREY)
-        row_y += 52
+        draw.text((crop.width + 14, row_y + 38), title,
+                  font=small_font, fill=GREY)
+        row_y += 62
     draw.text((12, canvas.height - 20),
               "(c) OpenStreetMap contributors",
               font=small_font, fill=GREY)

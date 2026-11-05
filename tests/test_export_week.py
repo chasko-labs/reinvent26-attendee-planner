@@ -91,9 +91,65 @@ def test_build_week_timeline_interleaves_open_windows():
     week = build_week(schedule, catalog, "/nonexistent", "2026-11-05")
     kinds = [(e["kind"], e["start"]) for e in week["timeline"]
              if e.get("date") == "2026-11-30"]
-    assert kinds == [("held", "08:30"), ("leg", "09:30"), ("open", "09:30"),
-                     ("held", "11:30")]
-    assert week["timeline"][1]["mode"] == "walk"
+    assert kinds == [("meal", ""), ("held", "08:30"), ("leg", "09:30"),
+                     ("meal", "09:30"), ("open", "09:30"), ("held", "11:30"),
+                     ("meal", "12:30")]
+    assert week["timeline"][2]["mode"] == "walk"
+
+
+def test_build_week_adds_breakfast_lunch_dinner_blocks():
+    catalog = [
+        {"sessionId": "h1", "abbreviation": "AAA111", "title": "First",
+         "startTime": "2026-11-30T08:30:00", "endTime": "2026-11-30T09:30:00",
+         "venue": "MGM Grand", "room": "R1", "speakers": [], "level": "300"},
+        {"sessionId": "h2", "abbreviation": "BBB222", "title": "Second",
+         "startTime": "2026-11-30T11:30:00", "endTime": "2026-11-30T12:30:00",
+         "venue": "MGM Grand", "room": "R2", "speakers": [], "level": "300"},
+    ]
+    schedule = {"schedule": {
+        "reserved": ["h1", "h2"], "favorites": [], "personalTime": [],
+    }}
+    week = build_week(schedule, catalog, "/nonexistent", "2026-11-05")
+    meals = [e for e in week["timeline"] if e["kind"] == "meal"]
+    assert [(m["meal"], m["when"]) for m in meals] == [
+        ("breakfast", "morning, before 08:30"),
+        ("lunch", "09:30–11:30"),
+        ("dinner", "after 12:30"),
+    ]
+    assert meals[0]["place"] == "MGM Grand"
+    assert "20-minute" in meals[0]["note"]
+    assert meals[2]["place"] == "TBD"
+
+
+def test_build_week_skips_lunch_outside_midday_window():
+    catalog = [
+        {"sessionId": "h1", "abbreviation": "AAA111", "title": "First",
+         "startTime": "2026-11-30T15:00:00", "endTime": "2026-11-30T16:00:00",
+         "venue": "MGM Grand", "room": "R1", "speakers": [], "level": "300"},
+        {"sessionId": "h2", "abbreviation": "BBB222", "title": "Second",
+         "startTime": "2026-11-30T17:00:00", "endTime": "2026-11-30T18:00:00",
+         "venue": "MGM Grand", "room": "R2", "speakers": [], "level": "300"},
+    ]
+    schedule = {"schedule": {
+        "reserved": ["h1", "h2"], "favorites": [], "personalTime": [],
+    }}
+    week = build_week(schedule, catalog, "/nonexistent", "2026-11-05")
+    assert [e for e in week["timeline"] if e.get("meal") == "lunch"] == []
+
+
+def test_build_week_thursday_dinner_names_replay():
+    catalog = [
+        {"sessionId": "h1", "abbreviation": "AAA111", "title": "First",
+         "startTime": "2026-12-03T08:00:00", "endTime": "2026-12-03T09:00:00",
+         "venue": "Wynn/Encore", "room": "R1", "speakers": [], "level": "300"},
+    ]
+    schedule = {"schedule": {
+        "reserved": ["h1"], "favorites": [], "personalTime": [],
+    }}
+    week = build_week(schedule, catalog, "/nonexistent", "2026-11-05")
+    dinner = [e for e in week["timeline"] if e.get("meal") == "dinner"]
+    assert len(dinner) == 1
+    assert "re:Play" in dinner[0]["note"]
 
 
 def test_build_week_inserts_leg_between_venues():

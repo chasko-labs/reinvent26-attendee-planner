@@ -74,8 +74,11 @@ def test_venue_labels_group_time_ordered_sessions():
         {"code": "AAA111", "start": "08:30", "venue": "MGM Grand"},
         {"code": "CCC333", "start": "12:00", "venue": "Wynn/Encore"},
     ]
-    from reinvent26.daymaps import venue_labels
+    from reinvent26.daymaps import ordered_numbers, venue_labels
     assert venue_labels(held) == {
-        "MGM Grand": ["08:30 AAA111", "15:00 BBB222"],
-        "Wynn/Encore": ["12:00 CCC333"],
+        "MGM Grand": ["1 08:30 AAA111", "3 15:00 BBB222"],
+        "Wynn/Encore": ["2 12:00 CCC333"],
     }
+    numbers = ordered_numbers(
+        sorted(held, key=lambda h: h["start"]))
+    assert sorted(numbers.values()) == [1, 2, 3]
