@@ -45,6 +45,28 @@ def test_session_entry_marks_reservable():
     assert entry["seat"] == "limited"
 
 
+def test_session_entry_carries_format_and_leg_rooms():
+    catalog = [
+        {"sessionId": "h1", "abbreviation": "AAA111", "title": "First",
+         "startTime": "2026-11-30T08:30:00", "endTime": "2026-11-30T09:30:00",
+         "venue": "MGM Grand", "room": "Level 3 | Room 350",
+         "speakers": [], "level": "300", "sessionType": "Workshop"},
+        {"sessionId": "h2", "abbreviation": "BBB222", "title": "Second",
+         "startTime": "2026-11-30T11:30:00", "endTime": "2026-11-30T12:30:00",
+         "venue": "Caesars Forum", "room": "Octavius 4",
+         "speakers": [], "level": "300", "sessionType": "Chalk talk"},
+    ]
+    assert session_entry(catalog[0])["format"] == "Workshop"
+    schedule = {"schedule": {
+        "reserved": ["h1", "h2"], "favorites": [], "personalTime": [],
+    }}
+    week = build_week(schedule, catalog, "/nonexistent", "2026-11-05")
+    legs = [e for e in week["timeline"] if e["kind"] == "leg"]
+    assert len(legs) == 1
+    assert legs[0]["from_room"] == "Level 3 | Room 350"
+    assert legs[0]["to_room"] == "Octavius 4"
+
+
 def test_build_week_splits_held_favorites_and_windows(tmp_path):
     week = build_week(_schedule(), _catalog(), str(tmp_path), "2026-11-05")
     assert [held_entry["code"] for held_entry in week["held"]] == ["STG363"]

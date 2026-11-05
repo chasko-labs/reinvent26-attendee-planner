@@ -41,6 +41,8 @@ def session_entry(catalog_session: dict) -> dict:
         "speakers": [speaker.get("name", "") for speaker in speakers
                      if isinstance(speaker, dict)],
         "level": catalog_session.get("level") or "",
+        "format": (catalog_session.get("sessionType")
+                   or catalog_session.get("type") or ""),
         "seat": (catalog_session.get("seatAvailability")
                  or catalog_session.get("seat_availability") or ""),
         "reservable": bool(catalog_session.get("isReservable")),
@@ -164,6 +166,8 @@ def build_week(schedule: dict, catalog: list, watcher_dir: str,
                          "ord": 1,
                          "from_venue": first_session["venue"],
                          "to_venue": second_session["venue"],
+                         "from_room": first_session.get("room") or "",
+                         "to_room": second_session.get("room") or "",
                          "mode": transit_mode, "label": transit_label})
     timeline = timeline + legs
     for day_date, day_held in held_by_day.items():
