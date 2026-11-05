@@ -93,6 +93,19 @@ def test_slugify_venue_names():
     assert venue_slug(venues, "Wynn/Encore") == "wynn-encore"
 
 
+def test_venue_labels_match_side_row_order_across_days():
+    from reinvent26.daymaps import venue_labels
+    held = [
+        {"code": "BBB222", "start": "15:00", "date": "2026-11-30",
+         "venue": "MGM Grand"},
+        {"code": "AAA111", "start": "08:30", "date": "2026-12-01",
+         "venue": "MGM Grand"},
+    ]
+    assert venue_labels(held) == {
+        "MGM Grand": ["1 15:00 BBB222", "2 08:30 AAA111"],
+    }
+
+
 def test_row_when_prefixes_date_on_multi_day_rows():
     from reinvent26.daymaps import _row_when
     item = {"date": "2026-12-03", "start": "08:00"}

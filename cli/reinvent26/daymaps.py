@@ -112,10 +112,11 @@ def ordered_numbers(day_held):
 
 
 def venue_labels(day_held):
-    """Session lines per venue, time-ordered: what each map dot means."""
+    """Session lines per venue, date/time-ordered to match the side rows."""
     numbers = ordered_numbers(day_held)
     labels: dict = {}
-    for item in sorted(day_held, key=lambda h: h["start"]):
+    for item in sorted(day_held,
+                       key=lambda h: (h.get("date", ""), h["start"])):
         labels.setdefault(item["venue"], []).append(
             f"{numbers[id(item)]} {item['start']} {item['code']}")
     return labels
@@ -294,13 +295,13 @@ def draw_transit(stops: list, mosaic, origin: tuple):
     draw = ImageDraw.Draw(canvas)
     draw.text((12, 2), "LAS VEGAS MONORAIL", font=title_font, fill=AMBER)
     shifted = [(px - left, py - top + 26) for px, py in points]
-    draw.line(shifted, fill=AMBER, width=3)
     row_y = 60
     for number, (stop, (dot_x, dot_y)) in enumerate(zip(ordered, shifted), 1):
         draw.ellipse([dot_x - 7, dot_y - 7, dot_x + 7, dot_y + 7],
                      fill=AMBER, outline=(10, 10, 14), width=2)
         draw.text((dot_x + 12, dot_y - 10), str(number),
-                  font=label_font, fill=OFFWHITE)
+                  font=label_font, fill=OFFWHITE,
+                  stroke_width=2, stroke_fill=PANEL)
         draw.text((crop.width + 14, row_y), f"{number}. {stop['name']}",
                   font=row_font, fill=OFFWHITE)
         row_y += 40
