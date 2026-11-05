@@ -179,8 +179,8 @@ def build_week(schedule: dict, catalog: list, watcher_dir: str,
             "ord": 1,
             "place": first_session_of_day["venue"], "state": "rule",
             "note": (f"breakfast near {first_session_of_day['venue']} — "
-                     "grab-and-go or sit-down, decided on site "
-                     "by the 20-minute gap")})
+                     "grab-and-go or sit-down by the 20-minute gap; "
+                     "room and serving hours posted on site")})
         for earlier_session, later_session in zip(ordered_held,
                                                   ordered_held[1:]):
             lunch_gap_minutes = _gap_minutes(earlier_session["end"],
