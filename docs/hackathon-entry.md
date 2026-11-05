@@ -39,14 +39,14 @@ and a morning report of what changed overnight.
 
 all 12 REST operations, each bound to a command:
 
-| operation | used by |
-| --------- | ------- |
-| ListEvents, GetEvent | `events`, `status` (reachability, name, timezone) |
-| ListSessions, GetSession | `sessions`, seat sweeps, watcher enrichment |
-| GetSchedule | `schedule`, every write confirmed against it |
-| AssociateFavorites, DisassociateFavorite | `favorite`, `remove-favorite`, watcher handoff |
-| ReserveSessions, CancelReservation | `reserve`, `fill` with rebook rollback |
-| CreatePersonalTime, UpdatePersonalTime, DeletePersonalTime | `block`, `reblock`, `unblock`, walk blocks |
+| operation                                                  | used by                                           |
+| ---------------------------------------------------------- | ------------------------------------------------- |
+| ListEvents, GetEvent                                       | `events`, `status` (reachability, name, timezone) |
+| ListSessions, GetSession                                   | `sessions`, seat sweeps, watcher enrichment       |
+| GetSchedule                                                | `schedule`, every write confirmed against it      |
+| AssociateFavorites, DisassociateFavorite                   | `favorite`, `remove-favorite`, watcher handoff    |
+| ReserveSessions, CancelReservation                         | `reserve`, `fill` with rebook rollback            |
+| CreatePersonalTime, UpdatePersonalTime, DeletePersonalTime | `block`, `reblock`, `unblock`, walk blocks        |
 
 the MCP server is driven two ways: the repo's skill
 (`skills/awsevents-muse/SKILL.md`) encodes the call rules both
