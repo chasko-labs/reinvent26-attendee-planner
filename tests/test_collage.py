@@ -42,6 +42,8 @@ def test_run_packs_strips_manifest_sidecars(tmp_path):
     assert len(manifest["strips"]) == 2
     assert manifest["strips"][0]["photos"] == [
         "photo-01.jpg", "photo-02.jpg", "photo-03.jpg"]
+    assert manifest["strips"][1]["photos"] == [
+        "photo-02.jpg", "photo-03.jpg", "photo-04.jpg"]
     sidecar = json.load(open(str(strip_one) + ".sidecar.json",
                              encoding="utf-8"))
     assert sidecar["sha256"]

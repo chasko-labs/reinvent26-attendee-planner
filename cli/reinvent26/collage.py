@@ -77,6 +77,9 @@ def run(photos_dir: str, out_dir: str, manifest_path: str) -> int:
     strips = []
     for strip_number, offset in enumerate(range(0, len(names), 3), 1):
         group = names[offset:offset + 3]
+        if len(group) < PANELS_PER_STRIP:
+            need = PANELS_PER_STRIP - len(group)
+            group = names[max(0, offset - need):offset] + group
         with PIL.Image.open(
                 os.path.join(photos_dir, group[0])) as first_photo:
             first_size = first_photo.size
