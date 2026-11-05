@@ -268,12 +268,30 @@ def plan_days(session_pool: list, held_ids: set, config: dict) -> list:
     return chosen_sessions
 
 
+def resolve_catalog_path() -> str | None:
+    """Repo-root catalog, preferring catalog.json with sessions.json fallback.
+
+    Matches the mapper fallback: both names resolve the same cached pull.
+    Returns None and reports the pull command when neither exists.
+    """
+    cache_dir = os.path.join(repo_root(), ".cache", EVENT_ID)
+    catalog_path = os.path.join(cache_dir, "catalog.json")
+    sessions_path = os.path.join(cache_dir, "sessions.json")
+    if os.path.exists(catalog_path):
+        return catalog_path
+    if os.path.exists(sessions_path):
+        return sessions_path
+    print(f"fail: no catalog at {catalog_path} or {sessions_path}; "
+          "run python3 -m reinvent26 sessions reinvent2026 --refresh "
+          "first", file=sys.stderr)
+    return None
+
+
 def run(dry_run: bool, workers: int, max_checks: int) -> int:
     """Fill mode: book open seats into free windows without touching anything already held."""
     config = mapper._load_config()
-    catalog_path = os.path.join(repo_root(), ".cache", EVENT_ID, "catalog.json")
-    if not os.path.exists(catalog_path):
-        print(f"fail: no catalog at {catalog_path}; pull it first", file=sys.stderr)
+    catalog_path = resolve_catalog_path()
+    if catalog_path is None:
         return 2
     token = access_token()
     if not token:
@@ -352,8 +370,11 @@ def rebalance(dry_run: bool, workers: int) -> int:
     if not token:
         print("fail: no valid token; run python3 -m reinvent26 login (or set EVENTS_ACCESS_TOKEN)", file=sys.stderr)
         return 2
+    catalog_path = resolve_catalog_path()
+    if catalog_path is None:
+        return 2
     cache_dir = os.path.join(repo_root(), ".cache", EVENT_ID)
-    with open(os.path.join(cache_dir, "catalog.json"), encoding="utf-8") as catalog_file:
+    with open(catalog_path, encoding="utf-8") as catalog_file:
         catalog = json.load(catalog_file)
     with open(os.path.join(cache_dir, "seats-sweep.json"), encoding="utf-8") as sweep_file:
         seat_by_code = json.load(sweep_file).get("seats", {})

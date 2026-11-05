@@ -131,3 +131,31 @@ def test_plan_days_one_run_per_base():
             make_session_with_id("X1-R1", "repeat-second", "MGM Grand", "2026-12-01T10:00", "2026-12-01T11:00")]
     got = [s["abbreviation"] for s in fill.plan_days(pool, set(), TEST_PLANNER_CONFIG)]
     assert got == ["X1-R"]
+
+
+def test_resolve_catalog_path_prefers_catalog_json(tmp_path, monkeypatch):
+    """catalog.json wins when both cached pulls exist."""
+    cache_dir = tmp_path / ".cache" / "reinvent2026"
+    cache_dir.mkdir(parents=True)
+    (cache_dir / "catalog.json").write_text("[]")
+    (cache_dir / "sessions.json").write_text("[]")
+    monkeypatch.setattr(fill, "repo_root", lambda: str(tmp_path))
+    assert fill.resolve_catalog_path() == str(cache_dir / "catalog.json")
+
+
+def test_resolve_catalog_path_falls_back_to_sessions_json(tmp_path, monkeypatch):
+    """sessions.json resolves when catalog.json is absent."""
+    cache_dir = tmp_path / ".cache" / "reinvent2026"
+    cache_dir.mkdir(parents=True)
+    (cache_dir / "sessions.json").write_text("[]")
+    monkeypatch.setattr(fill, "repo_root", lambda: str(tmp_path))
+    assert fill.resolve_catalog_path() == str(cache_dir / "sessions.json")
+
+
+def test_resolve_catalog_path_missing_reports_pull(tmp_path, monkeypatch, capsys):
+    """Neither file resolves to None with the pull command named."""
+    cache_dir = tmp_path / ".cache" / "reinvent2026"
+    cache_dir.mkdir(parents=True)
+    monkeypatch.setattr(fill, "repo_root", lambda: str(tmp_path))
+    assert fill.resolve_catalog_path() is None
+    assert "sessions reinvent2026 --refresh" in capsys.readouterr().err
