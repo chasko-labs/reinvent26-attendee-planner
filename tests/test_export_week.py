@@ -91,4 +91,25 @@ def test_build_week_timeline_interleaves_open_windows():
     week = build_week(schedule, catalog, "/nonexistent", "2026-11-05")
     kinds = [(e["kind"], e["start"]) for e in week["timeline"]
              if e.get("date") == "2026-11-30"]
-    assert kinds == [("held", "08:30"), ("open", "09:30"), ("held", "11:30")]
+    assert kinds == [("held", "08:30"), ("leg", "09:30"), ("open", "09:30"),
+                     ("held", "11:30")]
+    assert week["timeline"][1]["mode"] == "walk"
+
+
+def test_build_week_inserts_leg_between_venues():
+    catalog = [
+        {"sessionId": "h1", "abbreviation": "AAA111", "title": "First",
+         "startTime": "2026-12-01T12:00:00", "endTime": "2026-12-01T13:00:00",
+         "venue": "Wynn/Encore", "room": "R1", "speakers": [], "level": "300"},
+        {"sessionId": "h2", "abbreviation": "BBB222", "title": "Second",
+         "startTime": "2026-12-01T15:00:00", "endTime": "2026-12-01T16:00:00",
+         "venue": "Caesars Forum", "room": "R2", "speakers": [], "level": "300"},
+    ]
+    schedule = {"schedule": {
+        "reserved": ["h1", "h2"], "favorites": [], "personalTime": [],
+    }}
+    week = build_week(schedule, catalog, "/nonexistent", "2026-11-05")
+    legs = [e for e in week["timeline"] if e["kind"] == "leg"]
+    assert len(legs) == 1
+    assert legs[0]["mode"] == "shuttle"
+    assert "Caesars Forum" in legs[0]["to_venue"]

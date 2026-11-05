@@ -18,7 +18,7 @@ import os
 import re
 import sys
 
-from reinvent26 import api, auth, cache, cli, findme
+from reinvent26 import api, auth, cache, cli, findme, mapper
 
 EVENT_ID = "reinvent2026"
 CODE_RE = re.compile(r"\b([A-Z]{2,4}\d{3,4}(?:-R\d?|-S)?)\b")
@@ -96,6 +96,32 @@ def build_week(schedule: dict, catalog: list, watcher_dir: str,
     timeline = ([dict(entry, kind="held") for entry in held_entries]
                 + [dict(window, kind="open") for window in windows])
     timeline.sort(key=lambda e: (e.get("date", ""), e.get("start", "")))
+    config = mapper._load_config()
+    legs = []
+    by_day: dict = {}
+    for entry in held_entries:
+        by_day.setdefault(entry["date"], []).append(entry)
+    for date, day_held in by_day.items():
+        ordered = sorted(day_held, key=lambda e: e["start"])
+        for first, second in zip(ordered, ordered[1:]):
+            minutes = mapper._gap_needed(
+                {"venue": first["venue"]}, {"venue": second["venue"]}, config)
+            if first["venue"] == second["venue"]:
+                mode, label = "walk", "in-venue walk, about 10 minutes"
+            else:
+                mode = "shuttle"
+                label = f"shuttle, about {minutes} minutes (estimate)"
+            legs.append({"kind": "leg", "date": date,
+                         "start": first["end"], "end": first["end"],
+                         "ord": 1,
+                         "from_venue": first["venue"],
+                         "to_venue": second["venue"],
+                         "mode": mode, "label": label})
+    timeline = timeline + legs
+    for entry in timeline:
+        entry.setdefault("ord", 0 if entry["kind"] == "held" else 2)
+    timeline.sort(key=lambda e: (e.get("date", ""), e.get("start", ""),
+                                 e.get("ord", 9)))
     return {
         "generated_at": generated_at,
         "event_id": EVENT_ID,
