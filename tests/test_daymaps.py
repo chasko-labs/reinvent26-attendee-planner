@@ -1,0 +1,68 @@
+import sys
+import os
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "cli"))
+
+from reinvent26 import daymaps  # noqa: E402
+
+
+def test_tile_math_roundtrip():
+    x, y = daymaps.latlng_to_tile(36.1217, -115.1693, 15)
+    # slippy-map formula, verified to 10 digits: x = 5901.03, y = 12853.82
+    assert x == 5901
+    assert y == 12853
+    px, py = daymaps.latlng_to_pixel(36.1217, -115.1693, 15, x, y)
+    assert 0 <= px < 256
+    assert 0 <= py < 256
+
+
+def test_draw_day_composites_synthetic_mosaic(tmp_path):
+    from PIL import Image
+    mosaic = Image.new("RGB", (1408, 1408), (20, 20, 30))
+    venues = [
+        {"name": "MGM Grand", "lat": 36.1028, "lng": -115.1694},
+        {"name": "Venetian", "lat": 36.1217, "lng": -115.1693},
+    ]
+    tiles = [daymaps.latlng_to_tile(v["lat"], v["lng"], 15)
+             for v in venues]
+    origin = (min(t[0] for t in tiles) - 1,
+              min(t[1] for t in tiles) - 1)
+    held = [
+        {"code": "AAA111", "title": "First", "date": "2026-11-30",
+         "start": "08:30", "end": "09:30", "venue": "MGM Grand"},
+    ]
+    image = daymaps.draw_day("2026-11-30", held, venues, mosaic, origin)
+    assert image.width >= 330 + 50
+    assert image.mode == "RGB"
+    out = str(tmp_path / "day.png")
+    image.save(out)
+    assert os.path.getsize(out) > 5000
+
+
+def test_run_writes_five_pngs_with_cached_tiles(tmp_path, monkeypatch):
+    from PIL import Image
+    cache = tmp_path / "tiles"
+    cache.mkdir()
+    for name in ["15-5900-12655.png"]:
+        Image.new("RGB", (256, 256), (30, 30, 40)).save(str(cache / name))
+    import json
+    week = {"held": [
+        {"code": "AAA111", "title": "First", "date": "2026-11-30",
+         "start": "08:30", "end": "09:30", "venue": "MGM Grand"},
+    ]}
+    week_path = tmp_path / "week.json"
+    week_path.write_text(json.dumps(week))
+    ed = {"map_venues": [
+        {"name": "MGM Grand", "lat": 36.1028, "lng": -115.1694},
+        {"name": "Venetian", "lat": 36.1217, "lng": -115.1693},
+    ]}
+    ed_path = tmp_path / "ed.json"
+    ed_path.write_text(json.dumps(ed))
+
+    def fake_fetch(z, x, y, cache_dir):
+        return Image.new("RGB", (256, 256), (30, 30, 40))
+    monkeypatch.setattr(daymaps, "fetch_tile", fake_fetch)
+    out_dir = tmp_path / "out"
+    assert daymaps.run(str(week_path), str(ed_path), str(out_dir),
+                       str(cache)) == 0
+    assert (out_dir / "day-2026-11-30.png").exists()
