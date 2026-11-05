@@ -93,7 +93,7 @@ def fits(candidate_session: dict, held_sessions: list, config: dict) -> bool:
     """True when the candidate overlaps no held seat and leaves the venue travel gap on both sides.
 
     Only same-day held seats matter. The gap rule comes from map-config.json: 0 minutes within one
-    venue, 30 between strip-cluster venues, 60 to or from mgm grand.
+    venue, 45 between strip-cluster venues, 60 to or from mgm grand.
     """
     candidate_start, candidate_end = candidate_session["_start"], candidate_session["_end"]
     for held_session in held_sessions:
