@@ -198,7 +198,7 @@ def run(event_id: str, out: str, watcher_dir: str) -> int:
     week = build_week(schedule, catalog, watcher_dir,
                       _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%d"))
     with open(out, "w", encoding="utf-8") as handle:
-        json.dump(week, handle, indent=1)
+        json.dump(week, handle, indent="\t")
         handle.write("\n")
     print(f"# wrote {out}: {len(week['held'])} held, "
           f"{len(week['favorites'])} favorites", file=sys.stderr)
