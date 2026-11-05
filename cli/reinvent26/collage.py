@@ -8,6 +8,8 @@ packs them into 3-panel strips (1584x340 = 3x520 panels + 2x12px dividers on
 navy #0F141C), and writes one webp strip plus a sidecar per strip. Stills
 first: no motion is built from these until the stills ship. Deterministic:
 same inputs, same bytes. Photos land in the repo; nothing is fetched.
+After regenerating, run prettier --write on the manifest and sidecars:
+the site repo hook enforces prettier style.
 """
 
 from __future__ import annotations
