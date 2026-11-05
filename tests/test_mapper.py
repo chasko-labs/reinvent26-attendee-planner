@@ -12,11 +12,12 @@ from reinvent26 import mapper
 
 
 def test_venue_gap_compatibility() -> None:
-    """Test venue gap rules: same venue 0 min, cluster 30 min, mgm 60 min.
+    """Test venue gap rules: same venue 0 min, cluster 45 min, mgm 60 min.
     
     The gap rule ensures sessions at different venues have adequate time to
-    travel between them. Venetian/Wynn/Caesars form a cluster (30 min gap)
-    while MGM Grand requires 60 min due to distance.
+    travel between them. Venetian/Wynn/Caesars form a cluster (45 min gap,
+    covering shuttle wait plus entry lines) while MGM Grand
+    requires 60 min due to distance.
     """
     config = {
         "same_venue_gap": 0,

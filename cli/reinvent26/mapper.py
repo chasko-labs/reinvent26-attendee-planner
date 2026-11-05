@@ -35,7 +35,7 @@ from datetime import datetime, timedelta
 
 # venue gap configuration (minutes)
 SAME_VENUE_GAP = 0
-NEAR_VENUE_GAP = 30
+NEAR_VENUE_GAP = 45
 FAR_VENUE_GAP = 60
 
 
@@ -221,7 +221,8 @@ def _gap_needed(session_a: dict, session_b: dict, config: dict) -> int:
     """Return minimum gap in minutes between two sessions based on venue distance.
     
     Same venue: 0 min
-    Near cluster (Venetian/Wynn/Caesars): 30 min
+    Near cluster (Venetian/Wynn/Caesars): 45 min (shuttle wait plus
+    entry lines)
     Far (MGM Grand): 60 min
     
     Args:
