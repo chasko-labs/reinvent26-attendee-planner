@@ -6,7 +6,11 @@ per-day view, and draws venue pins plus the session list onto a single
 PNG per day. Static files: no JavaScript, no runtime tile fetching.
 
 `python3 -m reinvent26.daymaps reinvent2026 --week week.json
---venues-json editorial.json --out-dir static/reinvent26`
+--venues-json editorial.json --out-dir static/reinvent26
+[--transit-json transit.json]`
+
+Also renders one close-up map per venue (venue-<slug>.png) and, with
+--transit-json, a monorail strip (transit-monorail.png).
 
 Network only touches tile servers (polite: one subdomain, small sleeps).
 Tests use synthetic tiles and never touch the network.
@@ -18,6 +22,7 @@ import argparse
 import json
 import math
 import os
+import re
 import sys
 import time
 import urllib.request
@@ -101,7 +106,8 @@ def build_mosaic(venues: list, cache_dir: str):
 
 def ordered_numbers(day_held):
     """1-based numbers in time order, shared by dots and side rows."""
-    ordered = sorted(day_held, key=lambda h: h["start"])
+    ordered = sorted(day_held,
+                     key=lambda h: (h.get("date", ""), h["start"]))
     return {id(item): number for number, item in enumerate(ordered, 1)}
 
 
@@ -126,8 +132,13 @@ SHORT_NAMES = {
 }
 
 
+def slugify(name: str) -> str:
+    """URL slug for a venue or station name: Wynn/Encore -> wynn-encore."""
+    return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
+
+
 def draw_day(date: str, day_held: list, venues: list,
-             mosaic, origin: tuple):
+             mosaic, origin: tuple, title: str | None = None):
     """Composite: map crop left, session list right, attribution bottom."""
     from PIL import Image, ImageDraw, ImageFont
     title_font = ImageFont.truetype(FONT_PATH, 22)
@@ -136,6 +147,7 @@ def draw_day(date: str, day_held: list, venues: list,
     label_font = ImageFont.truetype(FONT_PATH, 12)
     labels = venue_labels(day_held)
     active = {h["venue"] for h in day_held}
+    multi_day = len({h.get("date", "") for h in day_held}) > 1
     points = {}
     for venue in venues:
         points[venue["name"]] = latlng_to_pixel(
@@ -164,8 +176,8 @@ def draw_day(date: str, day_held: list, venues: list,
                        PANEL)
     canvas.paste(crop, (0, 26))
     draw = ImageDraw.Draw(canvas)
-    draw.text((12, 2), DAY_LABELS.get(date, date), font=title_font,
-              fill=AMBER)
+    draw.text((12, 2), title or DAY_LABELS.get(date, date),
+              font=title_font, fill=AMBER)
     for venue_name, (px, py) in points.items():
         if not (left <= px <= right and top <= py <= bottom):
             continue
@@ -202,17 +214,18 @@ def draw_day(date: str, day_held: list, venues: list,
                           fill=OFFWHITE, anchor=anchor)
     row_y = 60
     numbers = ordered_numbers(day_held)
-    for item in sorted(day_held, key=lambda h: h["start"]):
+    for item in sorted(day_held,
+                       key=lambda h: (h.get("date", ""), h["start"])):
         number = numbers[id(item)]
-        title = item.get("title") or ""
-        if len(title) > 40:
-            title = title[:37] + "..."
+        row_title = item.get("title") or ""
+        if len(row_title) > 40:
+            row_title = row_title[:37] + "..."
         draw.text((crop.width + 14, row_y),
-                  f"{number}. {item['start']} {item['code']}",
+                  f"{number}. {_row_when(item, multi_day)} {item['code']}",
                   font=row_font, fill=OFFWHITE)
         draw.text((crop.width + 14, row_y + 22), item["venue"],
                   font=small_font, fill=GREY)
-        draw.text((crop.width + 14, row_y + 38), title,
+        draw.text((crop.width + 14, row_y + 38), row_title,
                   font=small_font, fill=GREY)
         row_y += 62
     draw.text((12, canvas.height - 20),
@@ -221,8 +234,97 @@ def draw_day(date: str, day_held: list, venues: list,
     return canvas
 
 
+def _row_when(item: dict, multi_day: bool) -> str:
+    """Side-row time: with MM-DD prefix when rows span several days."""
+    when = item["start"]
+    if multi_day and item.get("date"):
+        when = f"{item['date'][5:]} {item['start']}"
+    return when
+
+
+def venue_slug(venues: list, name: str) -> str:
+    """Editorial slug when present, else a slug of the venue name."""
+    for venue in venues:
+        if venue.get("name") == name and venue.get("slug"):
+            return venue["slug"]
+    return slugify(name)
+
+
+def run_venues(week: dict, venues: list, mosaic, origin: tuple,
+               out_dir: str) -> int:
+    """One close-up map per venue holding sessions across the week."""
+    names = sorted({h.get("venue", "") for h in week.get("held", [])
+                    if h.get("venue")})
+    for name in names:
+        at_venue = sorted(
+            (h for h in week["held"] if h.get("venue") == name),
+            key=lambda h: (h.get("date", ""), h["start"]))
+        image = draw_day(name, at_venue, venues, mosaic, origin,
+                         title=name)
+        out_path = os.path.join(out_dir, f"venue-{venue_slug(venues, name)}.png")
+        image.save(out_path)
+        print(f"# wrote {out_path} ({image.width}x{image.height})")
+    return 0
+
+
+def draw_transit(stops: list, mosaic, origin: tuple):
+    """Monorail strip: station dots joined south to north, names aside."""
+    from PIL import Image, ImageDraw, ImageFont
+    title_font = ImageFont.truetype(FONT_PATH, 22)
+    row_font = ImageFont.truetype(FONT_PATH, 16)
+    small_font = ImageFont.truetype(FONT_PATH, 13)
+    label_font = ImageFont.truetype(FONT_PATH, 12)
+    ordered = sorted(stops, key=lambda s: s["lat"])
+    points = [latlng_to_pixel(s["lat"], s["lng"], ZOOM, *origin)
+              for s in ordered]
+    xs = [p[0] for p in points]
+    ys = [p[1] for p in points]
+    pad = 110
+    left = max(0, min(xs) - pad)
+    top = max(0, min(ys) - pad)
+    right = min(mosaic.width, max(xs) + pad)
+    bottom = min(mosaic.height, max(ys) + pad)
+    crop = mosaic.crop((left, top, right, bottom))
+    panel_width = 330
+    list_bottom = 60 + len(ordered) * 40 + 30
+    canvas_height = max(crop.height + 26, list_bottom)
+    canvas = Image.new("RGB", (crop.width + panel_width, canvas_height),
+                       PANEL)
+    canvas.paste(crop, (0, 26))
+    draw = ImageDraw.Draw(canvas)
+    draw.text((12, 2), "LAS VEGAS MONORAIL", font=title_font, fill=AMBER)
+    shifted = [(px - left, py - top + 26) for px, py in points]
+    draw.line(shifted, fill=AMBER, width=3)
+    row_y = 60
+    for number, (stop, (dot_x, dot_y)) in enumerate(zip(ordered, shifted), 1):
+        draw.ellipse([dot_x - 7, dot_y - 7, dot_x + 7, dot_y + 7],
+                     fill=AMBER, outline=(10, 10, 14), width=2)
+        draw.text((dot_x + 12, dot_y - 10), str(number),
+                  font=label_font, fill=OFFWHITE)
+        draw.text((crop.width + 14, row_y), f"{number}. {stop['name']}",
+                  font=row_font, fill=OFFWHITE)
+        row_y += 40
+    draw.text((12, canvas.height - 20),
+              "(c) OpenStreetMap contributors",
+              font=small_font, fill=GREY)
+    return canvas
+
+
+def run_transit(transit_path: str, out_dir: str, cache_dir: str) -> int:
+    """Render the monorail strip from geocoded station stops."""
+    transit = json.load(open(transit_path, encoding="utf-8"))
+    stops = transit["stops"]
+    os.makedirs(out_dir, exist_ok=True)
+    mosaic, origin_x, origin_y = build_mosaic(stops, cache_dir)
+    image = draw_transit(stops, mosaic, (origin_x, origin_y))
+    out_path = os.path.join(out_dir, "transit-monorail.png")
+    image.save(out_path)
+    print(f"# wrote {out_path} ({image.width}x{image.height})")
+    return 0
+
+
 def run(week_path: str, editorial_path: str, out_dir: str,
-        cache_dir: str) -> int:
+        cache_dir: str, transit_path: str | None = None) -> int:
     week = json.load(open(week_path, encoding="utf-8"))
     editorial = json.load(open(editorial_path, encoding="utf-8"))
     venues = editorial["map_venues"]
@@ -235,6 +337,9 @@ def run(week_path: str, editorial_path: str, out_dir: str,
         out_path = os.path.join(out_dir, f"day-{date}.png")
         image.save(out_path)
         print(f"# wrote {out_path} ({image.width}x{image.height})")
+    run_venues(week, venues, mosaic, (origin_x, origin_y), out_dir)
+    if transit_path:
+        run_transit(transit_path, out_dir, cache_dir)
     return 0
 
 
@@ -247,8 +352,12 @@ def main(argv=None) -> int:
                         help="editorial.json holding map_venues")
     parser.add_argument("--out-dir", required=True)
     parser.add_argument("--cache-dir", default="/tmp/re26tiles")
+    parser.add_argument("--transit-json", default=None,
+                        help="transit.json with monorail stops; "
+                             "also renders transit-monorail.png")
     args = parser.parse_args(argv)
-    return run(args.week, args.venues_json, args.out_dir, args.cache_dir)
+    return run(args.week, args.venues_json, args.out_dir, args.cache_dir,
+               args.transit_json)
 
 
 if __name__ == "__main__":

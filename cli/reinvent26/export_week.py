@@ -39,6 +39,7 @@ def session_entry(item: dict) -> dict:
         "speakers": [s.get("name", "") for s in speakers if isinstance(s, dict)],
         "level": item.get("level") or "",
         "seat": item.get("seatAvailability") or item.get("seat_availability") or "",
+        "reservable": bool(item.get("isReservable")),
     }
 
 

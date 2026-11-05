@@ -33,6 +33,16 @@ def test_session_entry_shapes_fields():
     assert entry["date"] == "2026-11-30"
     assert entry["start"] == "08:30"
     assert entry["speakers"] == ["Ann Lee"]
+    assert entry["reservable"] is False
+
+
+def test_session_entry_marks_reservable():
+    item = dict(_catalog()[0])
+    item["isReservable"] = True
+    item["seatAvailability"] = "limited"
+    entry = session_entry(item)
+    assert entry["reservable"] is True
+    assert entry["seat"] == "limited"
 
 
 def test_build_week_splits_held_favorites_and_windows(tmp_path):

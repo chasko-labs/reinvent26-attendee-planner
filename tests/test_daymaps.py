@@ -82,3 +82,59 @@ def test_venue_labels_group_time_ordered_sessions():
     numbers = ordered_numbers(
         sorted(held, key=lambda h: h["start"]))
     assert sorted(numbers.values()) == [1, 2, 3]
+
+
+def test_slugify_venue_names():
+    from reinvent26.daymaps import slugify, venue_slug
+    assert slugify("Wynn/Encore") == "wynn-encore"
+    assert slugify("Harrah's / LINQ") == "harrah-s-linq"
+    venues = [{"name": "MGM Grand", "slug": "mgm"}]
+    assert venue_slug(venues, "MGM Grand") == "mgm"
+    assert venue_slug(venues, "Wynn/Encore") == "wynn-encore"
+
+
+def test_row_when_prefixes_date_on_multi_day_rows():
+    from reinvent26.daymaps import _row_when
+    item = {"date": "2026-12-03", "start": "08:00"}
+    assert _row_when(item, True) == "12-03 08:00"
+    assert _row_when(item, False) == "08:00"
+
+
+def test_run_venues_writes_one_png_per_venue(tmp_path, monkeypatch):
+    from PIL import Image
+    from reinvent26 import daymaps
+    venues = [
+        {"name": "MGM Grand", "slug": "mgm-grand",
+         "lat": 36.1028, "lng": -115.1694},
+    ]
+    tile = daymaps.latlng_to_tile(36.1028, -115.1694, 15)
+    origin = (tile[0] - 1, tile[1] - 1)
+    mosaic = Image.new("RGB", (3 * 256, 3 * 256), (20, 20, 30))
+    week = {"held": [
+        {"code": "AAA111", "title": "First", "date": "2026-11-30",
+         "start": "08:30", "end": "09:30", "venue": "MGM Grand"},
+    ]}
+    out_dir = tmp_path / "out"
+    out_dir.mkdir()
+    assert daymaps.run_venues(week, venues, mosaic, origin,
+                              str(out_dir)) == 0
+    assert (out_dir / "venue-mgm-grand.png").exists()
+
+
+def test_draw_transit_composites_synthetic_mosaic():
+    from PIL import Image
+    from reinvent26 import daymaps
+    stops = [
+        {"name": "MGM Grand", "lat": 36.1028, "lng": -115.1694},
+        {"name": "Sahara", "lat": 36.1425, "lng": -115.1546},
+    ]
+    tiles = [daymaps.latlng_to_tile(s["lat"], s["lng"], 15)
+             for s in stops]
+    origin = (min(t[0] for t in tiles) - 1,
+              min(t[1] for t in tiles) - 1)
+    width = (max(t[0] for t in tiles) - min(t[0] for t in tiles) + 3) * 256
+    height = (max(t[1] for t in tiles) - min(t[1] for t in tiles) + 3) * 256
+    mosaic = Image.new("RGB", (width, height), (20, 20, 30))
+    image = daymaps.draw_transit(stops, mosaic, origin)
+    assert image.mode == "RGB"
+    assert image.width >= 330 + 50
