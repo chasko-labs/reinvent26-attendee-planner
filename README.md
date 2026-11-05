@@ -88,6 +88,7 @@ Each command does one thing. The table lists every command with its one-line job
 | `interest`           | write full-but-interesting page with presenters to follow  |
 | `map`                | build event map and launch ledger from catalog             |
 | `new-sessions`       | diff the live catalog, evaluate new sessions, report       |
+| `find-me`            | render a shareable find-bryan page from the live schedule  |
 
 PKCE means Proof Key for Code Exchange. It is the browser sign-in flow the Events API requires. You never handle its secrets by hand.
 
@@ -119,7 +120,7 @@ The tree mirrors the commands. Each file owns one job:
 ```
 cli/reinvent26/
   __main__.py     # entry point
-  cli.py          # argparse scaffolding, 21 subcommands
+  cli.py          # argparse scaffolding, 22 subcommands
   api.py          # Events API client (stdlib only)
   auth.py         # Builder ID OAuth with PKCE, keychain/file storage
   cache.py        # .cache/<eventId>/ caching layer
@@ -130,6 +131,7 @@ cli/reinvent26/
   fill.py         # book open seats into free windows
   interest.py     # full-but-interesting page generator
   newevents.py    # daily new-session diff, local-model eval, report + handoff
+  findme.py       # shareable find-bryan page from live schedule
   inventory.py    # catalog dump to json for debugging
   seeds.py        # re:invent 2026 topic/venue defaults
   seeds.json      # curated session count targets

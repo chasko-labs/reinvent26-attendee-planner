@@ -26,6 +26,17 @@ def cmd_map(args) -> None:
     mapper_mod.main(argv)
 
 
+def cmd_find_me(args) -> None:
+    """Render a shareable find-bryan page from the live schedule."""
+    import reinvent26.findme as findme_mod
+    argv = [args.event_id]
+    if args.day is not None:
+        argv += ["--day", str(args.day)]
+    if args.out:
+        argv += ["--out", args.out]
+    raise SystemExit(findme_mod.main(argv))
+
+
 def cmd_new_sessions(args) -> None:
     """Diff the live catalog, evaluate new sessions, write the daily report."""
     import reinvent26.newevents as newevents_mod
@@ -810,6 +821,12 @@ def build_parser() -> argparse.ArgumentParser:
     ns.add_argument("--model", default="local")
     ns.add_argument("--out-dir", default=None, help="report directory (default: docs/new-sessions)")
     ns.set_defaults(fn=cmd_new_sessions)
+
+    fm = sub.add_parser("find-me", help="render a shareable find-bryan page from the live schedule")
+    fm.add_argument("event_id", nargs="?", default="reinvent2026")
+    fm.add_argument("--day", type=int, default=None, help="event day number (1-5); picks the visitor question")
+    fm.add_argument("--out", default=None, help="write to a file instead of stdout")
+    fm.set_defaults(fn=cmd_find_me)
 
     return p
 
