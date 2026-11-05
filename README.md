@@ -189,6 +189,7 @@ Each doc answers one question. You start with `sign-in.md` and branch from there
 - [docs/hallway-windows.md](docs/hallway-windows.md) — breakfast, lunch, dinner, and morning/midday/evening meetup slots. Read this to find Bryan between sessions.
 - [docs/daily-new-sessions.md](docs/daily-new-sessions.md) — the watcher runbook: new-session diffs, local-model eval, and cron setup. Read this to automate the morning report.
 - [docs/roadmap.md](docs/roadmap.md) — planned work, ordered by value over effort. Read this before proposing a feature.
+- [docs/hackathon-entry.md](docs/hackathon-entry.md) — the Builder Center post draft: what, why, API use, setup, demo script. Read this to publish the entry.
 - [docs/integrations/kiro-cli.md](docs/integrations/kiro-cli.md) — kiro-cli install, MCP config, and watcher handoff. Read this to drive the API from kiro-cli.
 - [docs/integrations/meta-muse.md](docs/integrations/meta-muse.md) — Meta Muse custom connector, verified limits, and the report-paste pattern. Read this to use Muse with the planner.
 - [docs/integrations/copilot.md](docs/integrations/copilot.md) — the Copilot routes that can reach the server. Read this to pick your Copilot path.

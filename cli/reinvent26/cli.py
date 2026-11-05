@@ -113,6 +113,15 @@ def cmd_status(args):
     if not args.event_id:
         return
     try:
+        event = api.get_event(args.event_id)
+    except api.EventsError as e:
+        print(f"event unreadable: {e}")
+        event = {}
+    if event:
+        name = event.get("eventName") or event.get("name") or args.event_id
+        zone = event.get("timeZone") or event.get("timezone") or "?"
+        print(f"event: {name} ({zone})")
+    try:
         sched = api.get_schedule(args.event_id, _token(args))
     except api.EventsError as e:
         if getattr(e, "status", None) == 401:
