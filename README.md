@@ -2,6 +2,8 @@
 
 A Python command-line interface (CLI) for re:Invent 2026 session discovery, planning, and seat booking. It talks to the public Events API (application programming interface). The project uses only the Python standard library, so there is nothing to install.
 
+Premise: an AI-free re:Invent. Deterministic code plans the week; models only rank and explain. The living output is https://bryanchasko.com/reinvent26. Bring your own topics: every example below uses mine, and the defaults in `data/reinvent2026/map-config.json` are mine too. Replace them with yours.
+
 ## prerequisites
 
 You must have Python 3.10 or newer. You check with:
@@ -45,8 +47,8 @@ python3 -m reinvent26 events
 # pull the full catalog, cached
 python3 -m reinvent26 sessions reinvent2026
 
-# rank by topic keywords
-python3 -m reinvent26 shortlist reinvent2026 --topics agents,mcp --level 3
+# rank by topic keywords (mine shown; substitute yours)
+python3 -m reinvent26 shortlist reinvent2026 --topics leo,braket --level 3
 
 # show your schedule plus double bookings
 python3 -m reinvent26 schedule reinvent2026

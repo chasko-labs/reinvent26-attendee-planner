@@ -21,6 +21,12 @@ re-runnable fill plans. on top of it:
 - `find-me` pages: held seats, morning/midday/evening windows, week
   topics, and a visitor question picked by event day. built so other
   builders can find bryan for breakfast, lunch, dinner, and re:Play.
+- a public week page generated from the live schedule: full-day
+  timelines (sessions, transit legs, breakfast/lunch/dinner blocks,
+  open windows), seats-now grouped by live seat band, per-venue
+  close-up maps and a monorail strip rendered from real map tiles,
+  hallway rules, and floor-photo strips packed per a deterministic
+  collage recipe. every map dot is numbered to its session row.
 - MCP integration guides for four assistants (kiro-cli, Meta Muse,
   Copilot, Gemini), each verified against the live server — including
   the documented dead end where Meta's hosted OAuth callback is
